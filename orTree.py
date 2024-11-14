@@ -22,7 +22,14 @@ class OrTreeScheduler:
         """
         Initializes the orTreeScheduler with the abstracted game slots and any necessary information found in the env
         variable. Put the contraint information in the env variable.
+
+            Parameters:
+                game_slots (list): list of abstracted game slots
+                practice_slots (list): list of abstracted practice slots
+                env (dictionary): contains all the necessary information to complete orTree (particularly
+                for the constr function)
         """
+        # populate local variables
         self.game_slots = game_slots
         self.practice_slots = practice_slots
         self.env = env
@@ -33,15 +40,31 @@ class OrTreeScheduler:
         """
         Altern function generates new prs from the current pr passed in. And it puts all of the prs
         into the fringe, which is maintained in a min heap (number of '*'s is minimal.)
+
+            Parameters:
+                pr (list): the schedule to be extended. (We can assume sol_entry for the respective
+                schedule in this list is ?)
+
+            Returns:
+                Boolean: True if altern function successfully applied, False otherwise
         """
         for i, slot in enumerate(pr):
             # Find the first unscheduled slot
             if slot == '*': 
-                return self.pushFringe(i, pr)
+                self.pushFringe(i, pr)
+                return True
         # Return False if no unscheduled slots were found
         return False
 
+
     def pushFringe(self, index, pr):
+        """
+        Function to push to the fringe all possible state combinations. Used in part of altern function
+
+            Parameters:
+                index (Int): the index in the schedule to schedule a slot into
+                pr (list): the current schedule being modified
+        """
         # Check if it's in the range for game slots
         if index < len(self.game_slots):
             for game_slot in self.game_slots:
@@ -56,13 +79,16 @@ class OrTreeScheduler:
                 new_pr = pr[:index] + [practice_slot] + pr[index+1:]
                 # Push into heap with the '*' count as priority
                 heapq.heappush(self.fringe, (new_pr.count('*'), (new_pr,'?')))
-        return True
-                   
+
+
     def ftrans(self, state):
         """
         transition function that selects an action to complete. This either changes sol_entry to yes, no, or
         calls the altern function that produces new branches/leaves of the tree. Returns the changed state (if it was
         changed. If not, juts returns how it was before '?')
+
+            Parameters:
+                state (schedule, sol_entry): The chosen state from fleaf that will go through a transition function.
         """
         pr = state[0]
         # if constraints are violated
@@ -81,29 +107,30 @@ class OrTreeScheduler:
         This is the base fleaf function because it has similarities between each of the fleaf variations. Here, I just
         find the highest index value of next schedule to be scheduled (#1 in min heap), and filter to choose between the
         deepest leaves in the more selective functions of fleaf_random, fleaf_mutation, or fleaf_crossover.
+
+            Returns:
+                tuple: (schedule, sol_entry)
         """
         # Start looping until a leaf is found (there are some situations where a leaf won't be found and it will have to start
         # looping.)
         newState = None
         while newState == None and self.fringe:
-            # Step 1: Find the highest index of the last scheduled slot in each schedule (just before the first '*')
-            def find_max_scheduled_index(schedule):
-                try:
-                    return schedule.index('*') - 1  # The index just before the first '*'
-                except ValueError:
-                    return len(schedule) - 1  # If no '*', return the last index
-
-            # Step 2: Find the maximum of these indices across all schedules in the fringe
-            max_scheduled_index = max(self.fringe, key=lambda x: find_max_scheduled_index(x[1]))[1].index('*') - 1
+            # Step 2: Find the maximum of these indices across all schedules in the fringe (since it is heap, should be at front)
+            max_scheduled_index = self.fringe[0][0]
 
             # Step 3: Filter to get all nodes that have this max scheduled index
-            max_scheduled_nodes = [item for item in self.fringe if find_max_scheduled_index(item[1]) == max_scheduled_index]
+            max_scheduled_nodes = []
+            for leaf in self.fringe:
+                num, state = leaf
+                if num <= max_scheduled_index:
+                    max_scheduled_nodes.append(leaf)
+                else:
+                    # since sorted, we can just stop the first time num*s is more
+                    break
 
             # Check how many template we have. 2 templates = crossover. 1 template = mutation. 0 templates = random
-            if self.tempA and self.tempB:
-                newState= self.fleaf_crossover(max_scheduled_nodes)
-            elif self.tempA or self.tempB:
-                newState = self.fleaf_mutation(max_scheduled_nodes)
+            if self.tempA or self.tempB:
+                newState= self.fleaf_template(max_scheduled_nodes, max_scheduled_index)
             else:
                 newState = self.fleaf_random(max_scheduled_nodes)
 
@@ -113,6 +140,13 @@ class OrTreeScheduler:
     def fleaf_random(self, leaves):
         """
         fleaf - random variation. This function selects a random leaf out of the deepest leaves.
+
+            Parameters:
+                leaves (list): List of leaves, where each leaf is a tuple (num*, (schedule, sol_entry))
+
+            Returns:
+                tuple: (schedule, sol_entry)
+
         """
         # Randomly select one node from the inputed list
         selected = random.choice(leaves)
@@ -124,53 +158,44 @@ class OrTreeScheduler:
         return selected[1]
 
 
-    def fleaf_mutation(self, leaves, index):
+    def fleaf_template(self, leaves, index):
         """
-        Selects a leaf from a list of leaves where the slot at `index` matches `match_value`.
+        Follows 1 or 2 templates in the schedule, and removes all other leaves that are not the same as the template(s)
 
-        Parameters:
-        leaves (list): List of leaves, where each leaf is a tuple (schedule, '?')
-        index (int): Index position to check in the schedule
+            Parameters:
+                leaves (list): each leaf in the form (num*, (schedule, sol_entry))
+                index: the index of the schedule to compare and choose to extend.
 
-        Returns:
-        tuple: The first leaf that matches the condition, or a leaf that doesn't match if at the random index point
+            Returns:  
+                tuple: (schedule, sol_entry) of the state that is chosen by fleaf.
         """
         selected = None
-        for leaf in leaves:
-            num, pr = leaf
-            schedule, status = pr
-            if schedule[index] == self.tempA[index]:
-                if index == self.mutate:
-                    leaves.remove(leaf)
-                    selected = random.choice(leaves)
-                else:
-                    selected = leaf
-                self.fringe.remove(selected)
-                break
-        return selected[1]
-
-
-    def fleaf_crossover(self, leaves, index):
-        """
-        fleaf - crossover variation. This function randomly selects a leaf so long as it matches 1 of the 2
-        templates.
-        """
         choices = []
-        selected = None
+        # Go through each leaf of the leaves that I could possible extend, and single out the leaves that match the template.
+        # Else, I want to remove the leaf from the fringe, since it doesn't follow the template.
         for leaf in leaves:
-            num, pr = leaf
-            schedule, status = pr
-            if schedule[index] == self.tempA[index] or schedule[index] == self.tempB[index]:
+            num, state = leaf
+            schedule, sol_entry = state
+            if self.tempA and (schedule[index] == self.tempA[index]):
                 choices.append(leaf)
-
+            elif self.tempB and (schedule[index] == self.tempB[index]):
+                choices.append(leaf)
+            else:
+                self.fringe.remove(leaf)
+        
+        # of the leaves that match the template(s). Select one of them randomly
         selected = random.choice(choices)
         self.fringe.remove(selected)
+
         return selected[1]
 
 
     def constr(self, schedule):
         """
         Function that evaluates the constraints. Returns True if no constraints are violated, False otherwise
+
+            Parameters:
+                schedule (list): partially or fully defined schedule
         """
         return True
 
@@ -202,23 +227,33 @@ class OrTreeScheduler:
         # return the completed schedule (pr') or empty list if failed.
         return state[0]
 
+
     def mutate(self, pr0):
         """
-        Base mutation function.
+        Base mutation function. That starts by randomly mutating 1 schedule and starting a search on it.
+
         """
-        rand = random.choice(self.randomNumbers)
-        self.randomNumbers.remove(rand)
-        self.pushFringe(rand, pr0)
-        prMut = pr0
-        while self.fringe:
-            selected = random.choice(self.fringe)
-            self.fringe.remove(selected)
-            num, state = selected
-            pr, sol_entry = state
-            if pr[rand] != self.tempA[rand]:
-                prMut = pr
-                break
-        return self.search(prMut)
+        schedule = []
+        # run until we get a completed schedule.
+        while not schedule:
+            # Select the index that we will randomly mutate. remove it from the random list (we will come
+            # back to here and select another random number if it doesn't produce any valid solutions.)
+            rand = random.choice(self.randomNumbers)
+            self.randomNumbers.remove(rand)
+            # populate the fringe with our initial nodes of all the possible combos our mutation can be.
+            self.pushFringe(rand, pr0)
+
+            prMut = None
+            while not prMut:
+                # select our starting node so that we can start our search. (this is pretty much an initial fleaf selection)
+                selected = random.choice(self.fringe)
+                self.fringe.remove(selected)
+                num, state = selected
+                pr, sol_entry = state
+                # we make sure that our mutated schedule is not going to end up being the same as our initial schedule.
+                if pr[rand] != self.tempA[rand]:
+                    prMut = pr
+            schedule = self.search(prMut)
 
 
     def generate_schedule(self, tempA = [], tempB=[]):
