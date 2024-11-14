@@ -33,6 +33,7 @@ class OrTreeScheduler:
         self.game_slots = game_slots
         self.practice_slots = practice_slots
         self.env = env
+        self.length = (len(self.game_slots)+len(self.practice_slots))
         self.fringe = []
 
 
@@ -71,14 +72,14 @@ class OrTreeScheduler:
                 # Create a new schedule with this game slot
                 new_pr = pr[:index] + [game_slot] + pr[index+1:]
                 # Push into heap with the '*' count as priority
-                heapq.heappush(self.fringe, (new_pr.count('*'), (new_pr,'?')))
+                heapq.heappush(self.fringe, (index, (new_pr,'?')))
         # Otherwise, it must be a practice slot
         else:
             for practice_slot in self.practice_slots:
                 # Create a new schedule with this practice slot
                 new_pr = pr[:index] + [practice_slot] + pr[index+1:]
                 # Push into heap with the '*' count as priority
-                heapq.heappush(self.fringe, (new_pr.count('*'), (new_pr,'?')))
+                heapq.heappush(self.fringe, (index, (new_pr,'?')))
 
 
     def ftrans(self, state):
@@ -122,7 +123,7 @@ class OrTreeScheduler:
             max_scheduled_nodes = []
             for leaf in self.fringe:
                 num, state = leaf
-                if num <= max_scheduled_index:
+                if num >= max_scheduled_index:
                     max_scheduled_nodes.append(leaf)
                 else:
                     # since sorted, we can just stop the first time num*s is more
@@ -231,11 +232,17 @@ class OrTreeScheduler:
     def mutate(self, pr0):
         """
         Base mutation function. That starts by randomly mutating 1 schedule and starting a search on it.
+        
+            Parameters:
+                pr0 (list): initial schedule to start mutation on. (usually empty schedule)
+
+            Returns:
+                schedule (list): empty list if not successful, or valid schedule generated
 
         """
         schedule = []
         # run until we get a completed schedule.
-        while not schedule:
+        while not schedule and self.randomNumbers:
             # Select the index that we will randomly mutate. remove it from the random list (we will come
             # back to here and select another random number if it doesn't produce any valid solutions.)
             rand = random.choice(self.randomNumbers)
@@ -254,6 +261,7 @@ class OrTreeScheduler:
                 if pr[rand] != self.tempA[rand]:
                     prMut = pr
             schedule = self.search(prMut)
+        return schedule
 
 
     def generate_schedule(self, tempA = [], tempB=[]):
@@ -267,15 +275,33 @@ class OrTreeScheduler:
         self.fringe = []
 
         # create start_state, and set preassignments right away.
-        length = (len(self.game_slots)+len(self.practice_slots))
-        pr0 = ['*'] * length
+        pr0 = ['*'] * self.length
 
         if (tempA or tempB) and not (tempA and tempB):
-            self.randomNumbers = list(range(length))
+            self.randomNumbers = list(range(self.length))
             schedule = self.mutate(pr0)      
         else:
             schedule = self.search(pr0)
 
         # return the found schedule
         return schedule
-    
+
+
+if __name__ == "__main__":
+    game_slots = ['s1', 's2', 's3', 's4']
+    practice_slots = ['s5', 's6', 's7', 's8']
+    env = None
+
+    scheduler = OrTreeScheduler(game_slots, practice_slots, env)
+
+    schedule1 = scheduler.generate_schedule()
+    print(schedule1)
+
+    #schedule2 = scheduler.generate_schedule(schedule1)
+    #print(schedule2)
+
+    schedule3 = scheduler.generate_schedule()
+    print(schedule3)
+
+    schedule4 = scheduler.generate_schedule(schedule1, schedule3)
+    print(schedule4)
