@@ -1,6 +1,5 @@
 
 # import list
-import heapq
 import random
 
 class OrTreeScheduler:
@@ -58,7 +57,7 @@ class OrTreeScheduler:
         return False
 
 
-    def pushFringe(self, index, pr):
+    def pushFringe(self, index, pr, mut = False):
         """
         Function to push to the fringe all possible state combinations. Used in part of altern function
 
@@ -72,14 +71,20 @@ class OrTreeScheduler:
                 # Create a new schedule with this game slot
                 new_pr = pr[:index] + [game_slot] + pr[index+1:]
                 # Push into heap with the '*' count as priority
-                heapq.heappush(self.fringe, (index, (new_pr,'?')))
+                if not mut:
+                    self.fringe.append((-index, (new_pr,'?')))
+                else:
+                    self.fringe.append((1, (new_pr,'?')))
         # Otherwise, it must be a practice slot
         else:
             for practice_slot in self.practice_slots:
                 # Create a new schedule with this practice slot
                 new_pr = pr[:index] + [practice_slot] + pr[index+1:]
                 # Push into heap with the '*' count as priority
-                heapq.heappush(self.fringe, (index, (new_pr,'?')))
+                if not mut:
+                    self.fringe.append((-index, (new_pr,'?')))
+                else:
+                    self.fringe.append((1, (new_pr,'?')))
 
 
     def ftrans(self, state):
@@ -116,25 +121,21 @@ class OrTreeScheduler:
         # looping.)
         newState = None
         while newState == None and self.fringe:
+            self.fringe.sort(key=lambda x: x[0])
             # Step 2: Find the maximum of these indices across all schedules in the fringe (since it is heap, should be at front)
-            max_scheduled_index = self.fringe[0][0]
+            max_scheduled_index = -self.fringe[0][0]
 
             # Step 3: Filter to get all nodes that have this max scheduled index
             max_scheduled_nodes = []
             for leaf in self.fringe:
                 num, state = leaf
-                if num >= max_scheduled_index:
+                if num == -max_scheduled_index:
                     max_scheduled_nodes.append(leaf)
-                else:
-                    # since sorted, we can just stop the first time num*s is more
-                    break
-
             # Check how many template we have. 2 templates = crossover. 1 template = mutation. 0 templates = random
             if self.tempA or self.tempB:
                 newState= self.fleaf_template(max_scheduled_nodes, max_scheduled_index)
             else:
                 newState = self.fleaf_random(max_scheduled_nodes)
-
         return newState
 
 
@@ -154,41 +155,48 @@ class OrTreeScheduler:
     
         # Remove the selected node from self.fringe (since it should still be in there)
         self.fringe.remove(selected)
-    
+
         # Return the selected state
         return selected[1]
 
 
     def fleaf_template(self, leaves, index):
         """
-        Follows 1 or 2 templates in the schedule, and removes all other leaves that are not the same as the template(s)
+        Follows 1 or 2 templates in the schedule, and removes all other leaves that are not the same as the template(s).
 
-            Parameters:
-                leaves (list): each leaf in the form (num*, (schedule, sol_entry))
-                index: the index of the schedule to compare and choose to extend.
+        Parameters:
+            leaves (list): each leaf in the form (num*, (schedule, sol_entry))
+            index: the index of the schedule to compare and choose to extend.
 
-            Returns:  
-                tuple: (schedule, sol_entry) of the state that is chosen by fleaf.
+        Returns:  
+            tuple: (schedule, sol_entry) of the state that is chosen by fleaf.
         """
         selected = None
         choices = []
-        # Go through each leaf of the leaves that I could possible extend, and single out the leaves that match the template.
-        # Else, I want to remove the leaf from the fringe, since it doesn't follow the template.
+        
+        # Go through each leaf of the leaves that could possibly extend and single out the leaves that match the template.
         for leaf in leaves:
             num, state = leaf
             schedule, sol_entry = state
-            if self.tempA and (schedule[index] == self.tempA[index]):
+            if self.tempA and (index < len(self.tempA)) and (schedule[index] == self.tempA[index]):
                 choices.append(leaf)
-            elif self.tempB and (schedule[index] == self.tempB[index]):
+            elif self.tempB and (index < len(self.tempB)) and (schedule[index] == self.tempB[index]):
                 choices.append(leaf)
             else:
                 self.fringe.remove(leaf)
         
-        # of the leaves that match the template(s). Select one of them randomly
-        selected = random.choice(choices)
-        self.fringe.remove(selected)
+        # Check if choices is empty, and handle the fallback case
+        if choices:
+            selected = random.choice(choices)
+            self.fringe.remove(selected)
+        else:
+            # Fallback: pick a random leaf from `leaves` if no matches were found
+            print("Warning: No matching choices found at index", index)
+            selected = random.choice(leaves)  # Fallback choice from all leaves
 
+        # Remove the selected leaf from the fringe
         return selected[1]
+
 
 
     def constr(self, schedule):
@@ -248,7 +256,7 @@ class OrTreeScheduler:
             rand = random.choice(self.randomNumbers)
             self.randomNumbers.remove(rand)
             # populate the fringe with our initial nodes of all the possible combos our mutation can be.
-            self.pushFringe(rand, pr0)
+            self.pushFringe(rand, pr0, True)
 
             prMut = None
             while not prMut:
@@ -295,13 +303,10 @@ if __name__ == "__main__":
     scheduler = OrTreeScheduler(game_slots, practice_slots, env)
 
     schedule1 = scheduler.generate_schedule()
-    print(schedule1)
-
-    #schedule2 = scheduler.generate_schedule(schedule1)
-    #print(schedule2)
+    print("schedule 1", schedule1)
 
     schedule3 = scheduler.generate_schedule()
-    print(schedule3)
+    print("schedule 3", schedule3)
 
     schedule4 = scheduler.generate_schedule(schedule1, schedule3)
-    print(schedule4)
+    print("schedule 4", schedule4)
