@@ -19,10 +19,11 @@ class Constr:
         each game/practice and their slots variable.
 
             Parameters:
-                game_slots (list): list of abstracted game slots
-                practice_slots (list): list of abstracted practice slots
+                game_slots (dataframe): dataframe of each game slot and their attributes
+                practice_slots (dataframe): dataframe of each practice slot and their attributes
+                events (dataframe): dataframe of each game and practice plus their attributes
                 env (dictionary): contains all the necessary information to complete orTree (particularly
-                for the constr function)
+                for the constr function) <- will eventually add as I go through each function
         """
         # populate local variables
         self.gslots_and_info = gslot_df
@@ -31,7 +32,7 @@ class Constr:
         self.game_slot_num = len(gslot_df.index)
         self.practice_slot_num = len(pslot_df.index)
 
-        # Variables for max exceeded
+        # Variables for checking ifmax exceeded
         self.game_counter = [0] * self.game_slot_num
         self.practice_counter = [0] * self.practice_slot_num
 
@@ -41,6 +42,10 @@ class Constr:
     # Change this so we accept one slot and create a counter that will retunr T or F
     # Find a way to reset
     def max_exceeded_reset(self):
+        """
+        resets the counter for number of games or practices in a slot to prepare
+        for checking the constraints in a new schedule
+        """
         # Lists to count the # of occurrences of each slot in the schedule
         self.game_counter = [0] * self.game_slot_num
         self.practice_counter = [0] * self.practice_slot_num
@@ -51,6 +56,10 @@ class Constr:
 
 
     def max_exceeded(self, slot, slot_type):
+        """
+        accepts a slot and the slot type (game or practice) as input and add it
+        to the counter. If the slots counter exceeds the limit return False
+        """
         if slot_type == 'G':
             self.game_counter[self.game_slot_lookup[slot]] += 1
             if self.game_counter[self.game_slot_lookup[slot]] > self.gslots_and_info.loc[slot,'Max']:
