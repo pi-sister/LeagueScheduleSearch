@@ -35,4 +35,5 @@ def f_select(current_state, fitness):
         selected_schedules = random.choices(current_state, weights=normalized_probabilities, k=2)
         OrTreeScheduler.generate_schedule(selected_schedules)
         #these last two line for crossover and mutation will require some change
+        # question to ask: why are we choosing the least fit schedules for mutation and crossover?
 
