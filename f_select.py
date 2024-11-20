@@ -10,7 +10,7 @@ def f_select(current_state):
         fitness (function): A function to calculate the fitness value of a given schedule.
     
     Returns:
-        call either mutate or crossover?
+        a new schedule by calling either mutate or crossover?
     """
     # Calculate the total fitness of all schedules in the current state
     total_fitness = sum(fitness(schedule) for schedule in current_state)
@@ -28,12 +28,12 @@ def f_select(current_state):
     if transition == 'Mutation':
         # Select one schedule for mutation based on the calculated probabilities
         selected_schedule = random.choices(current_state, weights=normalized_probabilities, k=1)[0]
-        OrTreeScheduler.generate_schedule([selected_schedule])
+        schedule = OrTreeScheduler.generate_schedule([selected_schedule])
     
     elif transition == 'Crossover':
         # Select two schedules for crossover based on the calculated probabilities
         selected_schedules = random.choices(current_state, weights=normalized_probabilities, k=2)
-        OrTreeScheduler.generate_schedule(selected_schedules)
+        schedule = OrTreeScheduler.generate_schedule(selected_schedules)
         #these last two line for crossover and mutation will require some change
         # question to ask: why are we choosing the least fit schedules for mutation and crossover?
-
+    return schedule
