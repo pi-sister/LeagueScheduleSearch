@@ -1,7 +1,7 @@
 import random
 import OrTreeScheduler
 #import fitness or define it
-def f_select(current_state, fitness):
+def f_select(current_state):
     """
     f_select function to select a transition from the given state based on the probabilities.
     
