@@ -28,12 +28,11 @@ def f_select(current_state):
     if transition == 'Mutation':
         # Select one schedule for mutation based on the calculated probabilities
         selected_schedule = random.choices(current_state, weights=normalized_probabilities, k=1)[0]
-        schedule = OrTreeScheduler.generate_schedule([selected_schedule])
+        schedule = OrTreeScheduler.generate_schedule(selected_schedule)
     
     elif transition == 'Crossover':
         # Select two schedules for crossover based on the calculated probabilities
         selected_schedules = random.choices(current_state, weights=normalized_probabilities, k=2)
-        schedule = OrTreeScheduler.generate_schedule(selected_schedules)
-        #these last two line for crossover and mutation will require some change
-        # question to ask: why are we choosing the least fit schedules for mutation and crossover?
+        schedule = OrTreeScheduler.generate_schedule(selected_schedules[0], selected_schedule[1])
+
     return schedule
