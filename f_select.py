@@ -15,7 +15,7 @@ def f_select(current_state):
     # Calculate the total fitness of all schedules in the current state
     total_fitness = sum(fitness(schedule) for schedule in current_state)
     
-    # Calculate the normalized probability for each schedule
+    # Calculate the inverted probability for each schedule(as lower fitness is better)
     probabilities = [1 - (fitness(schedule) / total_fitness) for schedule in current_state]
     
     # Normalize the probabilities so they sum up to 1
