@@ -1,6 +1,9 @@
 
 # import list
 import random
+import pandas as pd
+
+from constr import Constr
 
 class OrTreeScheduler:
     """
@@ -17,7 +20,7 @@ class OrTreeScheduler:
         [List your group members here, e.g., Name1, Name2, Name3, etc.]
     """
 
-    def __init__(self, game_slots, practice_slots, env):
+    def __init__(self, game_slots, practice_slots, constraints, env):
         """
         Initializes the orTreeScheduler with the abstracted game slots and any necessary information found in the env
         variable. Put the contraint information in the env variable.
@@ -31,6 +34,7 @@ class OrTreeScheduler:
         # populate local variables
         self.game_slots = game_slots
         self.practice_slots = practice_slots
+        self.constraints = constraints
         self.env = env
         self.length = (len(self.game_slots)+len(self.practice_slots))
         self.fringe = []
@@ -205,7 +209,26 @@ class OrTreeScheduler:
 
             Parameters:
                 schedule (list): partially or fully defined schedule
+
+            Ok so I need to take account of
+            notcompatible, assign, wrongslot, unwanted, partassign, DIV9
         """
+
+        self.constraints.max_exceeded_reset()
+
+        for slot_counter in range(self.length):
+            if schedule[slot_counter] == "*":
+                break
+
+            if slot_counter < len(self.game_slots):
+                if not self.constraints.max_exceeded(schedule[slot_counter], "G"):
+                    return False
+            else:
+                if not self.constraints.max_exceeded(schedule[slot_counter], "P"):
+                    return False
+            
+
+
         return True
 
 
@@ -296,11 +319,18 @@ class OrTreeScheduler:
 
 
 if __name__ == "__main__":
-    game_slots = ['s1', 's2', 's3', 's4']
-    practice_slots = ['s5', 's6', 's7', 's8']
+    # Load CSV with the first column as the index
+    df_gslots = pd.read_csv('test_game_slots.csv', index_col=0)
+    df_pslots = pd.read_csv('test_practice_slots.csv', index_col=0)
+    df_events = pd.read_csv('test_events.csv', index_col=0)
+
+    game_slots = list(df_gslots.index)
+    practice_slots = list(df_pslots.index)
     env = None
 
-    scheduler = OrTreeScheduler(game_slots, practice_slots, env)
+    constraints = Constr(df_gslots, df_pslots, df_events)
+
+    scheduler = OrTreeScheduler(game_slots, practice_slots, constraints, env)
 
     schedule1 = scheduler.generate_schedule()
     print("schedule 1", schedule1)
