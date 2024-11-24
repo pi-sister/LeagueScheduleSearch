@@ -1,3 +1,6 @@
+import pandas as pd
+from datetime import datetime
+
 class Constr:
     """
     Constraint function
@@ -32,12 +35,15 @@ class Constr:
         self.game_slot_num = len(gslot_df.index)
         self.practice_slot_num = len(pslot_df.index)
 
-        # Variables for checking ifmax exceeded
-        self.game_counter = [0] * self.game_slot_num
-        self.practice_counter = [0] * self.practice_slot_num
+        # evening
+        self.evening = datetime.strptime("18:00", "%H:%M").time()
 
-        self.game_slot_lookup = {}
-        self.practice_slot_lookup = {}
+        # Variables for checking if max exceeded
+        self.game_counter = []
+        self.practice_counter = []
+
+        self.game_slot_lookup = dict(zip(list(self.gslots_and_info.index), list(range(0,self.game_slot_num))))
+        self.practice_slot_lookup = dict(zip(list(self.pslots_and_info.index), list(range(0,self.practice_slot_num))))
     
     # Change this so we accept one slot and create a counter that will retunr T or F
     # Find a way to reset
@@ -49,10 +55,6 @@ class Constr:
         # Lists to count the # of occurrences of each slot in the schedule
         self.game_counter = [0] * self.game_slot_num
         self.practice_counter = [0] * self.practice_slot_num
-
-        # Disctionaries to lookup slot indices based on slot name
-        self.game_slot_lookup = dict(zip(list(self.gslots_and_info.index), list(range(0,self.game_slot_num))))
-        self.practice_slot_lookup = dict(zip(list(self.pslots_and_info.index), list(range(0,self.practice_slot_num))))
 
 
     def max_exceeded(self, slot, slot_type):
@@ -71,3 +73,61 @@ class Constr:
                 return False
             
         return True
+    
+    def incompatible(self, event_index, schedule):
+        # wrong : (
+        if self.events_and_info.iloc[event_index]['Incompatible']:
+            return True
+          
+        row_numbers = [self.events_and_info.index.get_loc(label) for label in self.events_and_info.iloc[event_index]['Incompatible']]
+
+        slot_set = set()
+        for i in row_numbers:
+            if schedule[i] == "*":
+                break
+            
+            if (schedule[i] in slot_set):
+                return False
+            
+            slot_set.add(schedule[i])
+
+        return True
+    
+    def check_assign(self, practice_index, schedule):
+        practice = self.events_and_info.index[practice_index]
+
+        if 'PRC' in practice:
+            corresponding_game = practice.partition('PRC')[0]
+        else:
+            corresponding_game = practice.partition('OPN')[0]
+
+        related_games = self.events_and_info[self.events_and_info.index.str.startswith(corresponding_game) & (self.events_and_info['Type'] == 'G')].index.tolist()
+
+        game_indices = [self.events_and_info.index.get_loc(label) for label in related_games]
+
+        for game_index in game_indices:
+            if (schedule[practice_index] == schedule[game_index]):
+                return False
+        
+        return True
+    
+    def check_unwanted(self, event_index, time_slot):
+        return time_slot not in self.events_and_info.iloc[event_index]['Unwanted']
+    
+    def check_partassign(self, event_index, time_slot):
+        return time_slot != self.events_and_info.iloc[event_index]['Part_assign']
+    
+    def check_evening_div(self, event_index, time_slot, event_type):
+        if self.events_and_info.iloc[event_index]['Div'] != '09':
+            return True
+        
+        event_time = None
+        if event_type == 'G':
+            event_time = self.gslots_and_info.loc[time_slot,'Start']
+        else:
+            event_time = self.pslots_and_info.loc[time_slot,'Start']
+
+        event_time = datetime.strptime(event_time, "%H:%M").time()
+
+        return self.evening >= event_time
+
