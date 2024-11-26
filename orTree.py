@@ -1,6 +1,9 @@
 
 # import list
 import random
+import pandas as pd
+
+from constr import Constr
 
 class OrTreeScheduler:
     """
@@ -17,7 +20,7 @@ class OrTreeScheduler:
         [List your group members here, e.g., Name1, Name2, Name3, etc.]
     """
 
-    def __init__(self, game_slots, practice_slots, env):
+    def __init__(self, game_slots, practice_slots, games, practices, constraints, env):
         """
         Initializes the orTreeScheduler with the abstracted game slots and any necessary information found in the env
         variable. Put the contraint information in the env variable.
@@ -31,8 +34,10 @@ class OrTreeScheduler:
         # populate local variables
         self.game_slots = game_slots
         self.practice_slots = practice_slots
+        self.games = games
+        self.constraints = constraints
         self.env = env
-        self.length = (len(self.game_slots)+len(self.practice_slots))
+        self.length = (self.games + practices)
         self.fringe = []
 
 
@@ -66,7 +71,7 @@ class OrTreeScheduler:
                 pr (list): the current schedule being modified
         """
         # Check if it's in the range for game slots
-        if index < len(self.game_slots):
+        if index < self.games:
             for game_slot in self.game_slots:
                 # Create a new schedule with this game slot
                 new_pr = pr[:index] + [game_slot] + pr[index+1:]
@@ -205,7 +210,41 @@ class OrTreeScheduler:
 
             Parameters:
                 schedule (list): partially or fully defined schedule
+
+            Ok so I need to take account of
+            DIV9
         """
+
+        self.constraints.max_exceeded_reset()
+
+        for slot_counter in range(self.length):
+            if schedule[slot_counter] == "*":
+                break
+
+            if slot_counter < self.games:
+                if not self.constraints.max_exceeded(schedule[slot_counter], "G"):
+                    return False
+                if not self.constraints.check_evening_div(slot_counter, schedule[slot_counter], "G"):
+                    return False
+            else:
+                if not self.constraints.max_exceeded(schedule[slot_counter], "P"):
+                    return False
+                if not self.constraints.check_evening_div(slot_counter, schedule[slot_counter], "P"):
+                    return False
+                
+            if not self.constraints.incompatible(slot_counter, schedule):
+                return False
+            
+            if slot_counter > self.games:
+                if not self.constraints.check_assign(slot_counter, schedule):
+                    return False
+                
+            if not self.constraints.check_unwanted(slot_counter, schedule[slot_counter]):
+                return False
+            
+            if not self.constraints.check_partassign(slot_counter, schedule[slot_counter]):
+                return False
+            
         return True
 
 
@@ -296,11 +335,20 @@ class OrTreeScheduler:
 
 
 if __name__ == "__main__":
-    game_slots = ['s1', 's2', 's3', 's4']
-    practice_slots = ['s5', 's6', 's7', 's8']
+    # Load CSV with the first column as the index
+    df_gslots = pd.read_csv('test_game_slots.csv', index_col=0)
+    df_pslots = pd.read_csv('test_practice_slots.csv', index_col=0)
+    df_events = pd.read_csv('test_events.csv', index_col=0)
+
+    game_slots = list(df_gslots.index)
+    practice_slots = list(df_pslots.index)
+    games = len(df_events[df_events.Type == 'G'].index)
+    practices = len(df_events[df_events.Type == 'P'].index)
     env = None
 
-    scheduler = OrTreeScheduler(game_slots, practice_slots, env)
+    constraints = Constr(df_gslots, df_pslots, df_events)
+
+    scheduler = OrTreeScheduler(game_slots, practice_slots, games, practices, constraints, env)
 
     schedule1 = scheduler.generate_schedule()
     print("schedule 1", schedule1)
