@@ -16,7 +16,7 @@ class Constr:
         [List your group members here, e.g., Name1, Name2, Name3, etc.]
     """
 
-    def __init__(self, gslot_df, pslot_df,events_df):
+    def __init__(self, env):
         """
         Initializes the Constr with the abstracted constraints from the environment and
         each game/practice and their slots variable.
@@ -29,11 +29,11 @@ class Constr:
                 for the constr function) <- will eventually add as I go through each function
         """
         # populate local variables
-        self.gslots_and_info = gslot_df
-        self.pslots_and_info = pslot_df
-        self.events_and_info = events_df
-        self.game_slot_num = len(gslot_df.index)
-        self.practice_slot_num = len(pslot_df.index)
+        self.gslots_and_info = env.game_slots
+        self.pslots_and_info = env.practice_slots
+        self.events_and_info = env.events
+        self.game_slot_num = env.game_slot_num()
+        self.practice_slot_num = env.practice_slot_num()
 
         # evening
         self.evening = datetime.strptime("18:00", "%H:%M").time()

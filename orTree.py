@@ -4,6 +4,7 @@ import random
 import pandas as pd
 
 from constr import Constr
+from environment import Environment as env
 
 class OrTreeScheduler:
     """
@@ -20,7 +21,7 @@ class OrTreeScheduler:
         [List your group members here, e.g., Name1, Name2, Name3, etc.]
     """
 
-    def __init__(self, game_slots, practice_slots, games, practices, constraints, env):
+    def __init__(self, constraints, env):
         """
         Initializes the orTreeScheduler with the abstracted game slots and any necessary information found in the env
         variable. Put the contraint information in the env variable.
@@ -32,12 +33,12 @@ class OrTreeScheduler:
                 for the constr function)
         """
         # populate local variables
-        self.game_slots = game_slots
-        self.practice_slots = practice_slots
-        self.games = games
+        self.game_slots = env.game_slots
+        self.practice_slots = env.practice_slots
+        self.games = env.events
         self.constraints = constraints
         self.env = env
-        self.length = (self.games + practices)
+        self.length = env.event_length
         self.fringe = []
 
 
