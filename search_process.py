@@ -142,7 +142,7 @@ class ScheduleProcessor:
         
         for i in range(iterNum):
             chooseAction(limitOfSchedules)
-        return Max(self.heap)
+        return max(self.heap)[1]
             
         
 
