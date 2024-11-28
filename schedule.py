@@ -329,7 +329,7 @@ class Schedule:
             # if(test_stuff_debug):
             #     print(f"{total_penalty = }")
 
-            self.eval = total_penalty
+        self.eval = total_penalty
     
     def assign(self, slots, verbose = False):
         self.assigned = slots
