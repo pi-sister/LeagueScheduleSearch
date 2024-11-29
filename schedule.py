@@ -471,7 +471,15 @@ class Schedule:
 
         self.eval = total_penalty
     
-    def assign(self, slots, verbose = 0):
+    def assign_and_eval(self, slots, verbose = 0):
+        """
+        Assigns slots to events, updates counters, evaluates the assignment, and optionally prints the details.
+        Args:
+            slots (list): A list of slots to be assigned to events.
+            verbose (int, optional): If set to a non-zero value, prints the assigned slots and evaluation. Defaults to 0.
+        Returns:
+            float: The evaluation score after assigning the slots.
+        """
         self.assigned = slots
         self.events['Assigned'] = self.assigned
         self.update_counters()
@@ -479,16 +487,46 @@ class Schedule:
         if verbose:
             print(f"Assigned: {self.assigned}")
             print(f"Evaluation: {self.eval}")
-            print(f'')
         return self.eval
         
-    def assign2(self, slots, verbose = False):
+    def assign2_and_eval(self, slots, verbose = False):
+        """
+        Assigns the provided slots to the instance, evaluates the assignment, and optionally prints the details.
+        Args:
+            slots (list): The slots to be assigned.
+            verbose (bool, optional): If True, prints the assigned slots and evaluation. Defaults to False.
+        Returns:
+            float: The evaluation result after assigning the slots.
+        """
         self.assigned = slots
         self.set_Eval1()
         if verbose:
             print(f"Assigned: {self.assigned}")
             print(f"Evaluation: {self.eval}")
         return self.eval
+    
+    def assign(self, slots):
+        """
+        Assigns the given slots to the instance and updates the events and counters.
+        Parameters:
+            slots (list): A list of slots to be assigned.
+        Returns:
+            None
+        """
+        self.assigned = slots
+        self.events['Assigned'] = self.assigned
+        self.update_counters()
+        
+    def get_scheduled(self) -> pd.DataFrame:
+        """
+        Retrieve scheduled events.
+        This method filters the events DataFrame to return only the rows where the 'Assigned' column
+        does not contain the '*' character, indicating that the event is scheduled.
+        Returns:
+            pandas.DataFrame: A DataFrame containing only the scheduled events.
+        """
+        scheduled = self.events[self.events['Assigned'] != '*']
+        return scheduled
     
     @staticmethod
     def list_to_schedule(lst: list, env: environment):

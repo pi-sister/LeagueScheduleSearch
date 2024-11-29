@@ -192,6 +192,12 @@ class Environment:
     def practice_slot_num(self):
         return len(self.__practice_slots)
     
+    def get_pslot_list(self):
+        return self.__practice_slots.index.tolist()
+    
+    def get_gslot_list(self):
+        return self.__game_slots.index.tolist()
+    
     def overlaps(self, event1, event2):
         """
         Checks if two events overlap in time.

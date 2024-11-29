@@ -26,8 +26,8 @@ if __name__ == "__main__":
     
     # sched.assign(["MO8:00","MO8:00","MO9:00","MO8:00","MO8:00","MO8:00","MO8:00","MO8:00"], True)
     # sched.assign([])
-    assign_time = timeit.timeit(lambda: sched.assign(["MO8:00","MO8:00","MO9:00","MO9:00","MO8:00","MO8:00","MO8:00","MO8:00","MO8:00","MO9:00","MO9:00"], verbose = 0), number=1)
-    assign2_time = timeit.timeit(lambda: sched.assign2(["MO8:00","MO8:00","MO9:00","MO9:00","MO8:00","MO8:00","MO8:00","MO8:00","MO8:00","MO9:00","MO9:00"], True), number=1)
+    assign_time = timeit.timeit(lambda: sched.assign_full(["MO8:00","MO8:00","MO9:00","MO9:00","MO8:00","MO8:00","MO8:00","MO8:00","MO8:00","MO9:00","MO9:00"], verbose = 0), number=1)
+    assign2_time = timeit.timeit(lambda: sched.assign2_full(["MO8:00","MO8:00","MO9:00","MO9:00","MO8:00","MO8:00","MO8:00","MO8:00","MO8:00","MO9:00","MO9:00"], True), number=1)
 
     
     print(f"Time taken for assign: {assign_time} seconds")
