@@ -543,4 +543,12 @@ class Schedule:
         sched = Schedule(env)
         sched.assign(lst)
         return sched
+    
+
+    def __str__(self):
+        """
+        Method changed schedule to String format (for printing purposes.)
+        """
+        string = "(" + str(self.assigned) + ", " + str(self.eval) + ")"
+        return string
         
