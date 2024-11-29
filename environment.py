@@ -58,7 +58,7 @@ class Environment:
             Returns the number of practice slots.
     """
     
-    def __init__(self, file_name: str = None, integers: list = None, verbose=1):
+    def __init__(self, file_name: str = None, integers: list = None, verbose=0):
         """
         Initializes the environment with the given file and integer parameters. Attributes do not change after initialization.
         Parameters:
@@ -118,10 +118,10 @@ class Environment:
         self.__practice_slots = _PrivateParser.process_slots(split_data[3], 'P', verbose)
         
         # Process games into a lookup table
-        games = _PrivateParser.process_games_practices(split_data[4], 'G')
+        games = _PrivateParser.process_games_practices(split_data[4], 'G', verbose)
 
         # Process practices into a lookup table
-        practices = _PrivateParser.process_games_practices(split_data[5], 'P')
+        practices = _PrivateParser.process_games_practices(split_data[5], 'P', verbose)
 
         # Combine Practices and Games
         events = pd.concat([games, practices], axis=0)
@@ -245,7 +245,7 @@ class _PrivateParser:
         return df
     
     @staticmethod
-    def process_games_practices(data, event_type, verbose = 1):
+    def process_games_practices(data, event_type, verbose = 0):
         """
         Processes game and practice data and converts it into a pandas DataFrame.
         Args:
@@ -380,9 +380,9 @@ class _PrivateParser:
         def related_games(event):
             if event['Type'] == 'P':
                 if 'PRC' in event.index:
-                    return event.name.partition('PRC')[0]
+                    return event['League'] + event['Tier'] + event['Div']
                 else:
-                    return event.name.partition('OPN')[0]
+                    return event['League'] + event['Tier'] + event['Div']
             else:
                 return ''
         
