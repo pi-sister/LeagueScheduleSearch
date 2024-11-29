@@ -22,13 +22,45 @@ debug_pair_with = True
 test_stuff_debug = True
 
 class Schedule:  
+    """
+    The Schedule class is responsible for managing and evaluating a schedule of events within a given environment. 
+    It provides methods to calculate various penalties based on the schedule's adherence to constraints and preferences.
+        env (environment.Environment): The environment object containing game slots, practice slots, events, and penalty weights.
+        eval (int): The evaluation score for the current schedule.
+        event_list (list): A list of event indices from the environment.
+        assignments (pandas.Series): A series of assigned parts from the events.
+        assigned (list): A list of assigned slots.
+    Methods:
+        __init__(env: environment.Environment):
+            Initializes the Schedule object with the given environment.
+        get_Starting():
+            Returns the list of assignments as a list.
+        set_Eval():
+            Calculates and sets the evaluation score for the current schedule based on various penalties.
+        min_filled(df: pandas.DataFrame, slots: pandas.DataFrame, penalty: int) -> int:
+            Calculates the minimum penalty for unfilled slots in a schedule.
+        pref_penalty(df: pandas.DataFrame) -> int:
+            Calculates the preference penalty for each row in the DataFrame and returns the total penalty sum.
+        pair_penalty(df: pandas.DataFrame, penalty: int) -> int:
+            Calculates the penalty for unpaired assignments in a DataFrame.
+        slot_diff_penalty(df: pandas.DataFrame, penalty: int) -> int:
+            Calculates the penalty based on the number of pairs of games assigned to the same slot.
+        alt_set_Eval():
+            An alternative method to calculate and set the evaluation score for the current schedule.
+        assign(slots: list, verbose: bool = False) -> int:
+            Assigns the given slots to the schedule and calculates the evaluation score.
+        assign2(slots: list, verbose: bool = False) -> int:
+            Assigns the given slots to the schedule using the alternative evaluation method and calculates the evaluation score.
+    """
     def __init__(self, env: environment.Environment):
-        events = env.events
+        self.events = env.events.copy()
         self.env = env
         self.eval = None
-        self.event_list = events.index.tolist()
-        self.assignments = events['Part_assign']
+        self.event_list = self.events.index.tolist()
+        self.assignments = self.events['Part_assign']
         self.assigned = []
+        self.gslots = env.game_slots.copy()
+        self.pslots = env.practice_slots.copy()
         
     def get_Starting(self):
         return self.assignments.to_list()
@@ -40,43 +72,24 @@ class Schedule:
         based on various criteria including minimum filled slots, preference penalties,
         pairing penalties, and section differences. The computed score is then assigned
         to the `self.eval` attribute.
+        
         The penalties are calculated as follows:
         - Minimum filled slots penalty: Ensures that the minimum number of game and practice slots are filled.
         - Preference penalty: Penalizes based on how well the assigned slots match the preferred slots.
         - Pairing penalty: Penalizes based on how well the assigned slots are paired.
         - Section difference penalty: Penalizes based on the difference in slot sections.
         The penalties are weighted by their respective weights defined in the environment.
-        
-        Attributes:
-            env (object): The environment object containing game slots, practice slots, events, and penalty weights.
-            gslots (DataFrame): A copy of the game slots from the environment.
-            pslots (DataFrame): A copy of the practice slots from the environment.
-            events (DataFrame): A copy of the events from the environment.
-            total_penalty (int): The total penalty score initialized to 0.
-            total_df (DataFrame): A DataFrame containing all events with their assigned slots.
-            g_df (DataFrame): A DataFrame containing only game events with their assigned slots.
-            p_df (DataFrame): A DataFrame containing only practice events with their assigned slots.
-            df (DataFrame): A concatenated DataFrame of game and practice events with their assigned slots.
-            min (int): The minimum filled slots penalty.
-            pref (int): The preference penalty.
-            pair (int): The pairing penalty.
-            sdiff (int): The section difference penalty.
-            self.eval (int): The final evaluation score for the current schedule.
         """
         
         env = self.env
-        gslots = env.game_slots.copy()
-        pslots = env.practice_slots.copy()
-        events = env.events    
-        
-        total_penalty = 0
-        total_df = events.copy()
+
+        total_df = self.events
 
         total_df['Assigned'] = self.assigned
         g_df = total_df[total_df['Type'] == 'G']
         p_df = total_df[total_df['Type'] == 'P']
-        g_df = pd.merge(g_df, gslots, how = 'left', left_on = 'Assigned', right_index = True)
-        p_df = pd.merge(p_df, pslots, how = 'left', left_on = 'Assigned', right_index = True)    
+        g_df = pd.merge(g_df, self.gslots, how = 'left', left_on = 'Assigned', right_index = True)
+        p_df = pd.merge(p_df, self.pslots, how = 'left', left_on = 'Assigned', right_index = True)    
         g_df['Type'] = 'G'
         p_df['Type'] = 'P'
         
@@ -85,8 +98,8 @@ class Schedule:
         print(df['Assigned'])
         [print(df.columns)]
         
-        min = self.min_filled(g_df, gslots, env.pen_notpaired)
-        min += self.min_filled(p_df, pslots, env.pen_notpaired)
+        min = self.min_filled(g_df, self.gslots, env.pen_notpaired)
+        min += self.min_filled(p_df, self.pslots, env.pen_notpaired)
         min *= env.w_minfilled
         
         pref = self.pref_penalty(df)
@@ -95,7 +108,7 @@ class Schedule:
         pair = self.pair_penalty(df, env.pen_notpaired)
         pair *= env.w_pair
         
-        sdiff = self.slot_diff(df, env.pen_section)
+        sdiff = self.slot_diff_penalty(df, env.pen_section)
         sdiff *= env.w_secdiff
         
         self.eval = min + pref + pair + sdiff
@@ -112,17 +125,56 @@ class Schedule:
         Returns:
             int: The total minimum penalty for unfilled slots.
         """
-        assigned_counts = df['Assigned'].value_counts()
-        slots=pd.merge(slots, assigned_counts, how = 'left', left_index = True, right_index = True)
-        slots['count'] = slots['count'].fillna(0)
-        print(slots)
-        
+        self.update_counters()
         def min_penalty(row):
             return penalty * max(0, int(row['Min']) - int(row['count']))
         
         slots['min_penalty'] = slots.apply(min_penalty, axis = 1)
         
         return slots['min_penalty'].sum()
+    
+    def max_exceeded(self, slot, slot_type):
+        """
+        Accepts a slot and the slot type (game or practice) as input and adds it
+        to the counter. If the slots counter exceeds the limit, return False.
+        
+        Args:
+            slot (str): The slot to be checked.
+            slot_type (str): The type of slot ('G' for game, 'P' for practice).
+        
+        Returns:
+            bool: True if the slot limit is not exceeded, False otherwise.
+        """
+        
+        if slot_type == 'G':
+            return self.gslots.at[slot, 'count'] <= self.gslots.at[slot, 'Max']
+        elif slot_type == 'P':
+            return self.pslots.at[slot, 'count'] <= self.pslots.at[slot, 'Max']
+        else:
+            raise ValueError("Invalid slot type. Must be 'G' or 'P'.")
+        
+    def update_counters(self):
+        """
+        Update the game or practice slot counter based on the given slot and slot type.
+        
+        Args:
+            slot (str): The slot to be updated.
+            slot_type (str): The type of slot ('G' for game, 'P' for practice).
+        """
+        self.update_typed_counters(self.events, 'G')
+        self.update_typed_counters(self.events, 'P')
+        
+    def update_typed_counters(self, df, slot_type):
+        if slot_type == 'G':
+            df = df[df['Type'] == 'G']
+            slots = self.gslots
+        elif slot_type == 'P':
+            df = df[df['Type'] == 'P']
+            slots = self.pslots
+        
+        assigned_counts = df['Assigned'].value_counts()
+        slots = pd.merge(slots, assigned_counts, how='left', left_index=True, right_index=True)
+        slots['count'] = slots['count'].fillna(0)
         
         
     def pref_penalty(self, df):
@@ -184,7 +236,7 @@ class Schedule:
         df['not_paired'] = df.apply(count_unpaired, axis=1)
         return df['not_paired'].sum() * penalty
         
-    def slot_diff(self, df, penalty: int):
+    def slot_diff_penalty(self, df, penalty: int):
         """
         Calculate the penalty based on the number of pairs of games assigned to the same slot.
         This function iterates through each unique league and tier in the DataFrame, counts the number of games assigned to each slot,
@@ -209,6 +261,7 @@ class Schedule:
                         pairs += comb(count, 2)
     
         return pairs * penalty
+
 
     def alt_set_Eval(self):
         # Initialize environment variables
@@ -333,6 +386,8 @@ class Schedule:
     
     def assign(self, slots, verbose = False):
         self.assigned = slots
+        self.events['Assigned'] = self.assigned
+        self.update_counters()
         self.set_Eval()
         if verbose:
             print(f"Assigned: {self.assigned}")
@@ -347,3 +402,19 @@ class Schedule:
             print(f"Evaluation: {self.eval}")
         return self.eval
     
+    @staticmethod
+    def list_to_schedule(lst: list, env: environment):
+        """
+        Converts a list of strings representing event assignments to a Schedule object.
+        
+        Args:
+            lst (list): A list of strings representing event assignments.
+            env (environment.Environment): The environment object containing game slots, practice slots, events, and penalty weights.
+            
+        Returns:
+            Schedule: A Schedule object with the given assignments.
+        """
+        sched = Schedule(env)
+        sched.assign(lst)
+        return sched
+        

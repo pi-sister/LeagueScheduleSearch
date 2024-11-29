@@ -5,6 +5,7 @@ import pandas as pd
 
 from constr import Constr
 from environment import Environment as env
+import schedule
 
 class OrTreeScheduler:
     """
@@ -19,8 +20,44 @@ class OrTreeScheduler:
 
     Contributors:
         [List your group members here, e.g., Name1, Name2, Name3, etc.]
+        
+    Attributes:
+        game_slots (list): List of abstracted game slots.
+        practice_slots (list): List of abstracted practice slots.
+        games (int): Number of games.
+        constraints (Constr): Constraints object to evaluate the schedule.
+        env (Environment): Environment object containing necessary information.
+        length (int): Length of the event.
+        fringe (list): List to maintain the fringe in a min heap.
+        starter_slots (list): List of preassigned slots. 
+        tempA (list): Template A for the schedule.
+        tempB (list): Template B for the schedule.
+        randomNumbers (list): List of random numbers for mutation.
+        
+    Methods:
+        __init__(constraints, env):
+            Initializes the OrTreeScheduler with the abstracted game slots and any necessary information found in the env variable.
+        altern(pr):
+            Generates new prs from the current pr passed in and puts all of the prs into the fringe, which is maintained in a min heap.
+        pushFringe(index, pr, mut=False):
+            Pushes to the fringe all possible state combinations. Used in part of altern function.
+        ftrans(state):
+            Transition function that selects an action to complete. Returns the changed state if it was changed, otherwise returns the state as it was before.
+        fleaf_base():
+            Base fleaf function that finds the highest index value of the next schedule to be scheduled and filters to choose between the deepest leaves.
+        fleaf_random(leaves):
+            Selects a random leaf out of the deepest leaves.
+        fleaf_template(leaves, index):
+            Follows 1 or 2 templates in the schedule and removes all other leaves that are not the same as the template(s).
+        constr(schedule):
+            Evaluates the constraints. Returns True if no constraints are violated, False otherwise.
+        search(pr0):
+            Main search algorithm of the OrTree. Takes the current state and returns a completed schedule, or an empty schedule if there are no solutions.
+        mutate(pr0):
+            Base mutation function that starts by randomly mutating 1 schedule and starting a search on it.
+        generate_schedule(tempA=[], tempB=[]):
+            Creates a schedule from the OrTree search algorithm with 0, 1, or 2 input templates. Defaults to an empty list, meaning no templates.
     """
-
     def __init__(self, constraints, env):
         """
         Initializes the orTreeScheduler with the abstracted game slots and any necessary information found in the env
@@ -38,9 +75,10 @@ class OrTreeScheduler:
         self.games = env.events
         self.constraints = constraints
         self.env = env
-        self.length = env.event_length
+        self.length = env.event_length()
         self.fringe = []
-
+        self.starter_slots = env.preassigned_slots
+    # TODO: @Emily 
 
     def altern(self, pr):
         """
@@ -72,7 +110,7 @@ class OrTreeScheduler:
                 pr (list): the current schedule being modified
         """
         # Check if it's in the range for game slots
-        if index < self.games:
+        if index < len(self.games):
             for game_slot in self.game_slots:
                 # Create a new schedule with this game slot
                 new_pr = pr[:index] + [game_slot] + pr[index+1:]
@@ -205,7 +243,7 @@ class OrTreeScheduler:
 
 
 
-    def constr(self, schedule):
+    def constr(self, sched_list: list):
         """
         Function that evaluates the constraints. Returns True if no constraints are violated, False otherwise
 
@@ -215,15 +253,16 @@ class OrTreeScheduler:
             Ok so I need to take account of
             DIV9
         """
-
+        tempSched = schedule.Schedule.list_to_schedule(sched_list, self.env)
+        # return tempSched.check_constraints()
         self.constraints.max_exceeded_reset()
 
         for slot_counter in range(self.length):
-            if schedule[slot_counter] == "*":
+            if sched_list[slot_counter] == "*":
                 break
 
-            if slot_counter < self.games:
-                if not self.constraints.max_exceeded(schedule[slot_counter], "G"):
+            if slot_counter < len(self.games):
+                if not tempSched.max_exceeded(tempSched.loc[slot_counter], "G"):
                     return False
                 if not self.constraints.check_evening_div(slot_counter, schedule[slot_counter], "G"):
                     return False
@@ -317,13 +356,20 @@ class OrTreeScheduler:
         creates a schedule from the orTree search algorithm with 0,1, or 2 input templates. This is included in the env variable
         and defaults to an empty list, meaning no templates. 
         0 templates = random orTree, 1 template = mutation orTree, 2 templates = crossover orTree
+        
+        Args:
+            tempA (list, optional): Template A for the schedule. Defaults to an empty list.
+            tempB (list, optional): Template B for the schedule. Defaults to an empty list.
+
+        Returns:
+            list: A valid schedule generated by the OrTree search algorithm.
         """
         self.tempA = tempA
         self.tempB = tempB
         self.fringe = []
 
         # create start_state, and set preassignments right away.
-        pr0 = ['*'] * self.length
+        pr0 = self.starter_slots
 
         if (tempA or tempB) and not (tempA and tempB):
             self.randomNumbers = list(range(self.length))
@@ -332,7 +378,7 @@ class OrTreeScheduler:
             schedule = self.search(pr0)
 
         # return the found schedule
-        return schedule
+        return schedule.list_to_schedule(schedule, self.env)
 
 
 if __name__ == "__main__":

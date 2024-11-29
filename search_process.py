@@ -1,7 +1,7 @@
 
 # imports for heap
 from heapq import heapify, heappush, heappop, nlargest
-from schedule import set_Eval
+import schedule
 from orTree import OrTreeScheduler
 import random
 
@@ -21,14 +21,14 @@ class ScheduleProcessor:
 
     """
 
-    def __init__(self, gameSlots, practiceSlots, env):
+    def __init__(self, scheduler):
         """
         Initializes the ScheduleProcessor with an empty heap.
         """
         # Create an empty heap for schedules
         self.heap = []
         heapify(self.heap)  # Convert the list into a valid heap structure
-        scheduler = OrTreeScheduler(gameSlots, practiceSlots, env) 
+        self.scheduler = scheduler
 
     def chooseAction(self, limitOfSchedules):
         """
@@ -52,7 +52,7 @@ class ScheduleProcessor:
 
 
 
-    def fwert(self, num, scheduler: OrTreeScheduler):
+    def fwert(self, num):
         """
         Executes one of the three operations based on the input operation code.
 
@@ -64,7 +64,7 @@ class ScheduleProcessor:
         match num:
             case 0:  
                 # generate a random new schedule
-                newSchedule = scheduler.generate_schedule()
+                newSchedule = self.scheduler.generate_schedule()
                 # Get the value of it from set_Eval
                 fitness = newSchedule.set_Eval()
                 # Add the new schedule to the heap.
@@ -81,7 +81,7 @@ class ScheduleProcessor:
         
 
 
-    def f_select(current_state):
+    def f_select(self, current_state):
         """
         f_select function to select a transition from the given state based on the probabilities.
     
@@ -116,12 +116,12 @@ class ScheduleProcessor:
         if transition == 'Mutation':
             # Select one schedule for mutation based on the calculated probabilities
             selected_schedule = random.choices(schedules, weights=normalized_probabilities, k=1)[0]
-            schedule = orTreeScheduler.generate_schedule(selected_schedule)
+            schedule = self.scheduler.generate_schedule(selected_schedule)
     
         elif transition == 'Crossover':
             # select two schedules for crossover based on the calculated probabilities
             selected_schedules = random.choices(schedules, weights=normalized_probabilities, k=2)
-            schedule = scheduler.generate_schedule(selected_schedules[0], selected_schedule[1])
+            schedule = self.scheduler.generate_schedule(selected_schedules[0], selected_schedule[1])
        
         # we dont want the same schedules in the heap
         if (schedule not in schedules):
@@ -142,7 +142,7 @@ class ScheduleProcessor:
         """
         
         for i in range(iterNum):
-            chooseAction(limitOfSchedules)
+            self.chooseAction(limitOfSchedules)
         return max(self.heap)[1]
             
         

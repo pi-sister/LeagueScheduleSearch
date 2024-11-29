@@ -3,35 +3,89 @@
 
 # %%
 import os
-import sys
 import re
 import pandas as pd
 import numpy as np
-import argparse
 
-# %% [markdown]
-# Parse command line
-
-# %% [markdown]
-# ## Parse file - Using DataFrames
 
 # %%
 class Environment:
-    def __init__(self, file_name: str = None, integers: list = None, verbose = 1):
+    """
+    Environment class for processing and managing game and practice schedules.
+        w_minfilled (int): Weight for minimum filled slots.
+        w_pref (int): Weight for preferences.
+        w_pair (int): Weight for pairs.
+        w_secdiff (int): Weight for section differences.
+        pen_gamemin (int): Penalty for minimum games.
+        pen_pracmin (int): Penalty for minimum practices.
+        pen_notpaired (int): Penalty for not paired events.
+        pen_section (int): Penalty for section violations.
+        game_slots (pd.DataFrame): DataFrame containing game slots and their properties.
+        practice_slots (pd.DataFrame): DataFrame containing practice slots and their properties.
+        events (pd.DataFrame): DataFrame containing combined games and practices with additional properties.
+    Methods:
+        __init__(file_name: str = None, integers: list = None, verbose=1):
+            Initializes the environment with the given file and integer parameters.
+        w_minfilled:
+            Returns the weight for minimum filled slots.
+        w_pref:
+            Returns the weight for preferences.
+        w_pair:
+            Returns the weight for pairs.
+        w_secdiff:
+            Returns the weight for section differences.
+        pen_gamemin:
+            Returns the penalty for minimum games.
+        pen_pracmin:
+            Returns the penalty for minimum practices.
+        pen_notpaired:
+            Returns the penalty for not paired events.
+        pen_section:
+            Returns the penalty for section violations.
+        game_slots:
+            Returns the DataFrame containing processed game slots.
+        practice_slots:
+            Returns the DataFrame containing processed practice slots.
+        events:
+            Returns the DataFrame containing combined games and practices with additional properties.
+        __str__:
+            Returns a string representation of the environment.
+        event_length:
+            Returns the number of events.
+        game_slot_num:
+            Returns the number of game slots.
+        practice_slot_num:
+            Returns the number of practice slots.
+    """
+    
+    def __init__(self, file_name: str = None, integers: list = None, verbose=1):
         """
-        Initialize the environment with the given file and integer parameters.
+        Initializes the environment with the given file and integer parameters. Attributes do not change after initialization.
         Parameters:
-        file_name (str, optional): The name of the file to read data from. If not provided, the user will be prompted to input a file name.
-        integers (list, optional): A list of 8 positive integers representing weights and penalties. If not provided, the user will be prompted to input these values.
-        verbose (int, optional): Verbosity level for processing. Default is 1.
+            file_name (str, optional): The name of the file to be processed. If not provided, the user will be prompted to input it.
+            integers (list, optional): A list of 8 positive integers representing weights and penalties. If not provided, the user will be prompted to input them.
+            verbose (int, optional): Verbosity level for processing. Default is 1.
         Raises:
-        ValueError: If any of the integers provided are negative.
-        FileNotFoundError: If the specified file does not exist.
+            ValueError: If any of the integers provided are negative or if the file cannot be opened.
+        Attributes:
+            __w_minfilled (int): Weight for minimum filled slots.
+            __w_pref (int): Weight for preferences.
+            __w_pair (int): Weight for pairs.
+            __w_secdiff (int): Weight for section differences.
+            __pen_gamemin (int): Penalty for minimum games.
+            __pen_pracmin (int): Penalty for minimum practices.
+            __pen_notpaired (int): Penalty for not paired events.
+            __pen_section (int): Penalty for section violations.
+            __game_slots (pd.DataFrame): DataFrame containing processed game slots.
+            __practice_slots (pd.DataFrame): DataFrame containing processed practice slots.
+            __events (pd.DataFrame): DataFrame containing combined games and practices with additional properties.
         Notes:
-        - The file is expected to contain specific sections identified by keywords such as 'Name:', 'Game slots:', 'Practice slots:', etc.
+        - The file is expected to contain specific sections identified by key words (e.g. "Game slots:", "Practice slots:", etc.).
         - The integers list should contain exactly 8 positive integers.
-        - The method processes game and practice slots, games, and practices, and combines them into a single DataFrame with additional properties.
+        - The file content is split into sections and processed accordingly.
+        - Game slots, practice slots, games, and practices are processed and combined into a DataFrame with additional properties.
         """
+        
 
         if file_name is None: # If no file is given, ask for it
             file_name = input('File')
@@ -120,6 +174,12 @@ class Environment:
     def events(self):
         return self.__events
     
+    @property
+    def preassigned_slots(self):
+        """Returns the pre-assigned slots for each event.
+        """
+        return self.__events['Part_assign'].tolist()
+    
     def __str__(self):
         return f'Environment: \n {self.__game_slots} \n {self.__practice_slots} \n {self.__events}'
     
@@ -131,6 +191,25 @@ class Environment:
     
     def practice_slot_num(self):
         return len(self.__practice_slots)
+    
+    def overlaps(self, event1, event2):
+        """
+        Checks if two events overlap in time.
+        Args:
+            event1 (str): The first event to check.
+            event2 (str): The second event to check.
+        Returns:
+            bool: True if the events overlap, False otherwise.
+        """
+        day1, start1 = self.__events.loc[event1, ['Day', 'Start']]
+        day2, start2 = self.__events.loc[event2, ['Day', 'Start']]
+        
+        if day1 == day2:
+            time_diff = abs(pd.to_datetime(start1) - pd.to_datetime(start2)).seconds / 60
+            return time_diff < 60
+        elif (day1 == 'MO' and day2 == 'F') or (day1 == 'F' and day2 == 'MO'):
+            time_diff = abs(pd.to_datetime(start1) - pd.to_datetime(start2)).seconds / 60
+            return time_diff < 120
 
 class _PrivateParser:
     @staticmethod
@@ -210,6 +289,10 @@ class _PrivateParser:
         # DataFrame with items
         df = pd.DataFrame(items, index = indices)
         df['Type'] = event_type
+        
+        # Hard constraint: nothing can be scheduled at this time. "Admin meeting"
+        if 'TU11:00' in df.index:
+            df = df.drop('TU11:00')
         if verbose:
             print(f'Processed {len(df)} {event_type} items: \n {df}\n')
         return df
@@ -217,23 +300,25 @@ class _PrivateParser:
         
     @staticmethod
     def add_properties(events: pd.DataFrame, split_data: list, verbose = 1):
+        """
+        Adds various properties to the events DataFrame based on the provided split_data.
+        Parameters:
+        events (pd.DataFrame): DataFrame containing event data.
+        split_data (list): List containing various data segments used for processing.
+        verbose (int, optional): Verbosity level. Defaults to 1.
+        Returns:
+        pd.DataFrame: Updated DataFrame with additional properties.
+        The function performs the following operations:
+        - Detects special practices and adds them to the DataFrame.
+        - Prepares columns of empty lists for 'Unwanted', 'Incompatible', 'Pair_with', and 'Preference'.
+        - Adds unwanted slots to the 'Unwanted' column for each event.
+        - Adds slot preferences to the 'Preference' column for each event.
+        - Adds pairings to the 'Pair_with' column for each event.
+        - Processes partial assignments and updates the 'Part_assign' column.
+        - Ensures special practices are assigned to a specific slot ('TU1800').
+        If verbose is set to 1, prints detailed information about the special practices, incompatible events, unwanted slots, preferences, pairs, and partial assignments.
+        """
         
-        special_practices = []
-        def special_detection(event):
-            if event['League'] == 'CMSA' and event['Tier'] == 'U12T1':
-                U12_practice = ['CMSA','U12T1S', '', '', '', 'P']
-                special_practices.append(U12_practice)
-            elif event['League'] == 'CMSA' and event['Tier'] == 'U13T1':
-                U13_practice = ['CMSA','U13T1S', '', '', '', 'P']
-                special_practices.append(U13_practice)
-
-        events.apply(special_detection, axis=1)
-        special_df = pd.DataFrame(special_practices, columns=['League', 'Tier', 'Div', 'Practice_Type', 'Num', 'Type'])
-        special_df['LeagueTier'] = special_df['League'] + special_df['Tier']
-        special_df = special_df.drop_duplicates(subset='LeagueTier', keep='first')
-        special_df.set_index('LeagueTier', inplace=True)
-        
-        events = pd.concat([events, special_df], axis=0)
 
         # Prepare columns of empty lists
         events['Unwanted'] = np.empty((len(events), 0)).tolist()
@@ -289,23 +374,53 @@ class _PrivateParser:
                     print(f'Part Assign entry error: {team} is not in table')
         events['Part_assign'] = events['Part_assign'].astype(str)
 
-        special_practices = ['CMSAU12T1S', 'CMSAU13T1S']
-        df = events[(events['Part_assign'] != "TU1800") & (events['Part_assign'] != "*")]
-        print(df)
-        for special in special_practices:
-            if special in events.index:
-                if special in df.index:
-                    print(f'Special Practice error: {special} is assigned to slot other than TU1800')
+        special_practices = []
+        def special_detection(event):
+            if event['League'] == 'CMSA' and event['Tier'] == 'U12T1':
+                U12_practice = {'League':'CMSA',
+                                'Tier': 'U12T1S', 
+                                'Type': 'P',
+                                'Part_assign': 'TU1800'}
+                special_practices.append(U12_practice)
+            elif event['League'] == 'CMSA' and event['Tier'] == 'U13T1':
+                U13_practice = {'League':'CMSA',
+                                'Tier': 'U13T1S', 
+                                'Type': 'P',
+                                'Part_assign': 'TU1800'}
+                special_practices.append(U13_practice)
+
+        events.apply(special_detection, axis=1)
+        special_df = pd.DataFrame(special_practices)
+        special_df = special_df.set_index(['League'] + special_df['Tier'])
+        special_df = special_df.drop_duplicates(subset=['League', 'Tier'], keep='first')
+        special_df = special_df.reindex(columns=events.columns, fill_value=0)
+        
+        events = pd.concat([events, special_df], axis=0)
+        
+        # Do we want to add the name of each team's game to the practice?
+        def related_games(event):
+            if event['Type'] == 'P':
+                if 'PRC' in event.index:
+                    return event.name.partition('PRC')[0]
                 else:
-                    events.at[special, 'Part_assign'] = 'TU1800'
+                    return event.name.partition('OPN')[0]
+            else:
+                return ''
+        
+        events['Corresp_game'] = events.apply(related_games, axis=1)
+        
         if verbose:
+            print(events.head())
+            print(f'Columns: {events.columns}\n')
             print(f'Special practices: \n{special_df}\n')
             print(f'Not compatible: \n{events["Incompatible"]}\n')
             print(f'Unwanted slots: \n{events["Unwanted"]}\n')
             print(f'Preferences: \n{events["Preference"]}\n')
             print(f'Pairs: \n{events["Pair_with"]}\n')
             print(f'Partial Assignments: {partial_assignments}')
+
         return events
+    
     
     @staticmethod
     def get_index(event: str):
