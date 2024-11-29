@@ -423,16 +423,22 @@ class _PrivateParser:
                                 'Pair_with': [],
                                 'Preference': [],
                                 'Corresp_game': 'LeagueU13T1',
-                                'Part_assign': 'TU1800'}
+                                'Part_assign': 'TU18:00'}
                 special_practices.append(U13_practice)
 
         events.apply(special_detection, axis=1)
         special_df = pd.DataFrame(special_practices)
-        special_df = special_df.set_index(['League'] + special_df['Tier'])
-        special_df = special_df.drop_duplicates(subset=['League', 'Tier'], keep='first')
-        special_df = special_df.reindex(columns=events.columns, fill_value=0)
-        
-        events = pd.concat([events, special_df], axis=0)
+        # Proceed only if special_df is not empty
+        if not special_df.empty:
+            special_df = special_df.set_index(['League'] + special_df['Tier'])
+            special_df = special_df.drop_duplicates(subset=['League', 'Tier'], keep='first')
+            special_df = special_df.reindex(columns=events.columns, fill_value=0)
+
+            print("\nevents before: \n", events)
+            events = pd.concat([events, special_df], axis=0)
+            print("\nevents after: \n", events)
+        else:
+            print("\nSpecial df is empty. Skipping processing.")
         
         if verbose:
             print(events.head())
