@@ -111,7 +111,7 @@ class OrTreeScheduler:
         """
         # Check if it's in the range for game slots
         if index < len(self.games):
-            for game_slot in self.game_slots:
+            for game_slot in self.game_slots.index:
                 # Create a new schedule with this game slot
                 new_pr = pr[:index] + [game_slot] + pr[index+1:]
                 # Push into heap with the '*' count as priority
@@ -121,7 +121,7 @@ class OrTreeScheduler:
                     self.fringe.append((1, (new_pr,'?')))
         # Otherwise, it must be a practice slot
         else:
-            for practice_slot in self.practice_slots:
+            for practice_slot in self.practice_slots.index:
                 # Create a new schedule with this practice slot
                 new_pr = pr[:index] + [practice_slot] + pr[index+1:]
                 # Push into heap with the '*' count as priority
@@ -383,25 +383,17 @@ class OrTreeScheduler:
 
 if __name__ == "__main__":
     # Load CSV with the first column as the index
-    df_gslots = pd.read_csv('test_game_slots.csv', index_col=0)
-    df_pslots = pd.read_csv('test_practice_slots.csv', index_col=0)
-    df_events = pd.read_csv('test_events.csv', index_col=0)
+    env = env('Jamie.txt', [1,0,1,0,10,10,10,10], verbose = 1)
 
-    game_slots = list(df_gslots.index)
-    practice_slots = list(df_pslots.index)
-    games = len(df_events[df_events.Type == 'G'].index)
-    practices = len(df_events[df_events.Type == 'P'].index)
-    env = None
+    constraints = Constr(env)
 
-    constraints = Constr(df_gslots, df_pslots, df_events)
+    scheduler = OrTreeScheduler(constraints, env)
 
-    scheduler = OrTreeScheduler(game_slots, practice_slots, games, practices, constraints, env)
-
-    schedule1 = scheduler.generate_schedule()
+    schedule1 = scheduler.generate_schedule().assigned
     print("schedule 1", schedule1)
 
-    schedule3 = scheduler.generate_schedule()
+    schedule3 = scheduler.generate_schedule().assigned
     print("schedule 3", schedule3)
 
-    schedule4 = scheduler.generate_schedule(schedule1, schedule3)
+    schedule4 = scheduler.generate_schedule(schedule1, schedule3).assigned
     print("schedule 4", schedule4)
