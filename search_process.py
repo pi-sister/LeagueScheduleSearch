@@ -2,7 +2,7 @@
 # imports for heap
 from heapq import heapify, heappush, heappop, nlargest
 from main import set_Eval
-from or_tree import OrTreeScheduler
+from orTree import OrTreeScheduler
 
 #note: the OrtreeScheduler needs to give me a schedule of type Schedule so 
 #that i can call set_Eval on it.
@@ -75,7 +75,11 @@ class ScheduleProcessor:
             case 1:  
                 # Remove the worst schedule
                 # Remove the largest value in the heap (the worst schedule in a min heap).
-                heappop(self.heap)  # Remove the worst by E_value
+                # Remove the largest value in the heap (the worst schedule in a min heap).
+                n_largest = nlargest(1, self.heap)[0]
+                self.heap.remove(n_largest)  # Remove by value
+                heapify(self.heap)  # Convert the list into a valid heap structure
+                # Remove the worst by E_value
 
         
 
