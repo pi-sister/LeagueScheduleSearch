@@ -386,9 +386,9 @@ class _PrivateParser:
         def related_games(event):
             if event['Type'] == 'P':
                 if 'PRC' in event.index:
-                    return event['League'] + event['Tier'] + event['Div']
+                    return event['League'] + event['Tier'] + 'DIV' + event['Div']
                 else:
-                    return event['League'] + event['Tier'] + event['Div']
+                    return event['League'] + event['Tier'] + 'DIV' + event['Div']
             else:
                 return ''
         
@@ -442,6 +442,7 @@ class _PrivateParser:
             print(f'Unwanted slots: \n{events["Unwanted"]}\n')
             print(f'Preferences: \n{events["Preference"]}\n')
             print(f'Pairs: \n{events["Pair_with"]}\n')
+            print(f'Corresponding Games: \n{events["Corresp_game"]}\n')
             print(f'Partial Assignments: {partial_assignments}')
 
         return events
