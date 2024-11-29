@@ -1,5 +1,5 @@
 import random
-import OrTreeScheduler
+from orTree import OrTreeScheduler
 #import fitness or define it
 def f_select(current_state):
     """
