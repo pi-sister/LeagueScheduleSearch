@@ -72,7 +72,10 @@ class OrTreeScheduler:
         # populate local variables
         self.game_slots = env.game_slots
         self.practice_slots = env.practice_slots
-        self.games = env.events
+        # Filter the events DataFrame to include only games
+        self.games = env.events[env.events['Type']=='G']
+        print("\nEvents\n", env.events)
+        print("\ngames\n ", self.games)
         self.constraints = constraints
         self.env = env
         self.length = env.event_length()
@@ -261,11 +264,12 @@ class OrTreeScheduler:
             if sched_list[slot_counter] == "*":
                 break
 
-            # if slot_counter < len(self.games):
-                # if not self.constraints.max_exceeded(sched_list[slot_counter], "G"):
-                #     return False
-            #     if not self.constraints.check_evening_div(slot_counter, schedule[slot_counter], "G"):
-            #         return False
+            if slot_counter < len(self.games):
+                #print(sched_list)
+                if not self.constraints.max_exceeded(sched_list[slot_counter], "G"):
+                    return False
+            #    if not self.constraints.check_evening_div(slot_counter, schedule[slot_counter], "G"):
+            #        return False
             # else:
             #     if not self.constraints.max_exceeded(schedule[slot_counter], "P"):
             #         return False
@@ -391,6 +395,9 @@ if __name__ == "__main__":
 
     schedule1 = scheduler.generate_schedule().assigned
     print("schedule 1", schedule1)
+
+    #schedule2 = scheduler.generate_schedule(schedule1).assigned
+    #print("schedule 2", schedule2)
 
     schedule3 = scheduler.generate_schedule().assigned
     print("schedule 3", schedule3)

@@ -58,15 +58,16 @@ class Constr:
         accepts a slot and the slot type (game or practice) as input and add it
         to the counter. If the slots counter exceeds the limit return False
         """
-        print(f'MAX EXCEEDED: {slot} {slot_type}')
+        #print(f'MAX EXCEEDED: {slot} {slot_type}')
         if slot_type == 'G':
             self.game_counter[self.game_slot_lookup[slot]] += 1
-            if self.game_counter[self.game_slot_lookup[slot]] > self.env.game_slots.loc[slot,'Max']:
+            # print("game_counter", self.game_counter, "\nlookupslot: ", self.game_slot_lookup[slot], "\nmaxSlots type: ", type(self.env.game_slots.loc[slot, 'Max']))
+            if self.game_counter[self.game_slot_lookup[slot]] > int(self.env.game_slots.loc[slot,'Max']):
                 return False
             
         if slot_type == 'P':
             self.practice_counter[self.practice_slot_lookup[slot]] += 1
-            if self.practice_counter[self.practice_slot_lookup[slot]] > self.env.practice_slots.loc[slot,'Max']:
+            if self.practice_counter[self.practice_slot_lookup[slot]] > int(self.env.practice_slots.loc[slot,'Max']):
                 return False
             
         return True
