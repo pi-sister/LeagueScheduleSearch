@@ -66,7 +66,7 @@ class ScheduleProcessor:
                 # generate a random new schedule
                 newSchedule = self.scheduler.generate_schedule()
                 # Get the value of it from set_Eval
-                fitness = newSchedule.set_Eval()
+                fitness = newSchedule.set_Eval1()
                 # Add the new schedule to the heap.
                 # this is a max heap for effeciency so invert the value
                 heappush(self.heap, (-fitness, newSchedule))

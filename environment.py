@@ -374,28 +374,7 @@ class _PrivateParser:
                     print(f'Part Assign entry error: {team} is not in table')
         events['Part_assign'] = events['Part_assign'].astype(str)
 
-        special_practices = []
-        def special_detection(event):
-            if event['League'] == 'CMSA' and event['Tier'] == 'U12T1':
-                U12_practice = {'League':'CMSA',
-                                'Tier': 'U12T1S', 
-                                'Type': 'P',
-                                'Part_assign': 'TU1800'}
-                special_practices.append(U12_practice)
-            elif event['League'] == 'CMSA' and event['Tier'] == 'U13T1':
-                U13_practice = {'League':'CMSA',
-                                'Tier': 'U13T1S', 
-                                'Type': 'P',
-                                'Part_assign': 'TU1800'}
-                special_practices.append(U13_practice)
 
-        events.apply(special_detection, axis=1)
-        special_df = pd.DataFrame(special_practices)
-        special_df = special_df.set_index(['League'] + special_df['Tier'])
-        special_df = special_df.drop_duplicates(subset=['League', 'Tier'], keep='first')
-        special_df = special_df.reindex(columns=events.columns, fill_value=0)
-        
-        events = pd.concat([events, special_df], axis=0)
         
         # Do we want to add the name of each team's game to the practice?
         def related_games(event):
@@ -408,6 +387,46 @@ class _PrivateParser:
                 return ''
         
         events['Corresp_game'] = events.apply(related_games, axis=1)
+        
+        
+        special_practices = []
+        def special_detection(event):
+            if event['League'] == 'CMSA' and event['Tier'] == 'U12T1':
+                U12_practice = {'League':'CMSA',
+                                'Tier': 'U12T1S', 
+                                'Type': 'P',
+                                'Div': '',
+                                'Practice_Type': '',
+                                'Num': '',
+                                'Unwanted': [],
+                                'Incompatible': [],
+                                'Pair_with': [],
+                                'Preference': [],
+                                'Corresp_game': 'LeagueU12T1',
+                                'Part_assign': 'TU1800'}
+                special_practices.append(U12_practice)
+            elif event['League'] == 'CMSA' and event['Tier'] == 'U13T1':
+                U13_practice = {'League':'CMSA',
+                                'Tier': 'U13T1S', 
+                                'Type': 'P',
+                                'Div': '',
+                                'Practice_Type': '',
+                                'Num': '',
+                                'Unwanted': [],
+                                'Incompatible': [],
+                                'Pair_with': [],
+                                'Preference': [],
+                                'Corresp_game': 'LeagueU13T1',
+                                'Part_assign': 'TU1800'}
+                special_practices.append(U13_practice)
+
+        events.apply(special_detection, axis=1)
+        special_df = pd.DataFrame(special_practices)
+        special_df = special_df.set_index(['League'] + special_df['Tier'])
+        special_df = special_df.drop_duplicates(subset=['League', 'Tier'], keep='first')
+        special_df = special_df.reindex(columns=events.columns, fill_value=0)
+        
+        events = pd.concat([events, special_df], axis=0)
         
         if verbose:
             print(events.head())

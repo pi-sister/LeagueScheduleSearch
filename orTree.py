@@ -261,29 +261,29 @@ class OrTreeScheduler:
             if sched_list[slot_counter] == "*":
                 break
 
-            if slot_counter < len(self.games):
-                if not tempSched.max_exceeded(tempSched.loc[slot_counter], "G"):
-                    return False
-                if not self.constraints.check_evening_div(slot_counter, schedule[slot_counter], "G"):
-                    return False
-            else:
-                if not self.constraints.max_exceeded(schedule[slot_counter], "P"):
-                    return False
-                if not self.constraints.check_evening_div(slot_counter, schedule[slot_counter], "P"):
-                    return False
+            # if slot_counter < len(self.games):
+                # if not self.constraints.max_exceeded(sched_list[slot_counter], "G"):
+                #     return False
+            #     if not self.constraints.check_evening_div(slot_counter, schedule[slot_counter], "G"):
+            #         return False
+            # else:
+            #     if not self.constraints.max_exceeded(schedule[slot_counter], "P"):
+            #         return False
+            #     if not self.constraints.check_evening_div(slot_counter, schedule[slot_counter], "P"):
+            #         return False
                 
-            if not self.constraints.incompatible(slot_counter, schedule):
-                return False
+            # if not self.constraints.incompatible(slot_counter, schedule):
+            #     return False
             
-            if slot_counter > self.games:
-                if not self.constraints.check_assign(slot_counter, schedule):
-                    return False
+            # if slot_counter > self.games:
+            #     if not self.constraints.check_assign(slot_counter, schedule):
+            #         return False
                 
-            if not self.constraints.check_unwanted(slot_counter, schedule[slot_counter]):
-                return False
+            # if not self.constraints.check_unwanted(slot_counter, schedule[slot_counter]):
+            #     return False
             
-            if not self.constraints.check_partassign(slot_counter, schedule[slot_counter]):
-                return False
+            # if not self.constraints.check_partassign(slot_counter, schedule[slot_counter]):
+            #     return False
             
         return True
 
@@ -373,12 +373,12 @@ class OrTreeScheduler:
 
         if (tempA or tempB) and not (tempA and tempB):
             self.randomNumbers = list(range(self.length))
-            schedule = self.mutate(pr0)      
+            sched_list = self.mutate(pr0)      
         else:
-            schedule = self.search(pr0)
+            sched_list = self.search(pr0)
 
         # return the found schedule
-        return schedule.list_to_schedule(schedule, self.env)
+        return schedule.Schedule.list_to_schedule(sched_list, self.env)
 
 
 if __name__ == "__main__":

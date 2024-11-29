@@ -53,11 +53,12 @@ class Constr:
         self.practice_counter = [0] * self.env.practice_slot_num()
 
 
-    def max_exceeded(self, slot, slot_type):
+    def max_exceeded(self, slot: str, slot_type: str):
         """
         accepts a slot and the slot type (game or practice) as input and add it
         to the counter. If the slots counter exceeds the limit return False
         """
+        print(f'MAX EXCEEDED: {slot} {slot_type}')
         if slot_type == 'G':
             self.game_counter[self.game_slot_lookup[slot]] += 1
             if self.game_counter[self.game_slot_lookup[slot]] > self.env.game_slots.loc[slot,'Max']:

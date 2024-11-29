@@ -96,7 +96,7 @@ class Schedule:
         df = pd.concat([g_df, p_df])
         
         print(df['Assigned'])
-        [print(df.columns)]
+        [print(df.head())]
         
         min = self.min_filled(g_df, self.gslots, env.pen_notpaired)
         min += self.min_filled(p_df, self.pslots, env.pen_notpaired)
@@ -126,6 +126,7 @@ class Schedule:
             int: The total minimum penalty for unfilled slots.
         """
         self.update_counters()
+        
         def min_penalty(row):
             return penalty * max(0, int(row['Min']) - int(row['count']))
         
@@ -173,7 +174,7 @@ class Schedule:
             slots = self.pslots
         
         assigned_counts = df['Assigned'].value_counts()
-        slots = pd.merge(slots, assigned_counts, how='left', left_index=True, right_index=True)
+        slots['count'] = assigned_counts
         slots['count'] = slots['count'].fillna(0)
         
         
@@ -201,9 +202,11 @@ class Schedule:
                 return 0
             else:
                 penalty = 0
-                for pref,value in row['Preference']:
-                    if pref != row['Assigned']:
-                        penalty += int(value)
+                print(row['Preference'])
+                if isinstance(row['Preference'], list): 
+                    for item in row['Preference']:
+                        if item[0] != row['Assigned']:
+                            penalty += int(item[1])
                 return penalty
         df['pref_penalty'] = df.apply(pref_calc, axis = 1)
         return df['pref_penalty'].sum()
@@ -229,9 +232,11 @@ class Schedule:
                 return 0
             else:
                 count = 0
-                for pair in row['Pair_with']:
-                    if df.loc[pair]['Assigned'] != row['Assigned']:
-                        count += 1
+                if isinstance(row['Pair_with'], list):
+                    print(f'Pair check: {row['Pair_with']}')
+                    for pair in row['Pair_with']:
+                        if df.loc[pair]['Assigned'] != row['Assigned']:
+                            count += 1
                 return count
         df['not_paired'] = df.apply(count_unpaired, axis=1)
         return df['not_paired'].sum() * penalty
@@ -263,7 +268,7 @@ class Schedule:
         return pairs * penalty
 
 
-    def alt_set_Eval(self):
+    def set_Eval1(self):
         # Initialize environment variables
         env = self.env
         events = env.events
@@ -281,6 +286,8 @@ class Schedule:
         df = pd.merge(df, practice_slots, how='left', left_on='Assigned', right_index=True)
         # This needs to be fixed - separate merges for game and practice slots
 
+        print('***Testing df****')
+        print(df.columns)
 
         # Filter rows where 'Assigned' is not empty
         filterRows = df[df['Assigned'] != ""]
@@ -392,11 +399,12 @@ class Schedule:
         if verbose:
             print(f"Assigned: {self.assigned}")
             print(f"Evaluation: {self.eval}")
+            print(f'')
         return self.eval
         
     def assign2(self, slots, verbose = False):
         self.assigned = slots
-        self.alt_set_Eval()
+        self.set_Eval1()
         if verbose:
             print(f"Assigned: {self.assigned}")
             print(f"Evaluation: {self.eval}")
