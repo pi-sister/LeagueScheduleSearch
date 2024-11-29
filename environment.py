@@ -428,8 +428,8 @@ class _PrivateParser:
 
         events.apply(special_detection, axis=1)
 
-        # Proceed only if special_df is not empty
-        if not special_practices == []:
+        # Proceed only if special_practices is not empty
+        if special_practices:
             special_df = pd.DataFrame(special_practices)
             special_df = special_df.set_index(special_df['League'] + special_df['Tier'])
             special_df = special_df.drop_duplicates(subset=['League', 'Tier'], keep='first')
@@ -444,7 +444,7 @@ class _PrivateParser:
         if verbose:
             print(events.head())
             print(f'Columns: {events.columns}\n')
-            print(f'Special practices: \n{special_df}\n')
+            print(f'Special practices: \n{special_practices}\n')
             print(f'Not compatible: \n{events["Incompatible"]}\n')
             print(f'Unwanted slots: \n{events["Unwanted"]}\n')
             print(f'Preferences: \n{events["Preference"]}\n')
