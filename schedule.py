@@ -207,7 +207,7 @@ class Schedule:
         - If they do not match, it adds the associated value to the penalty.
         - The penalty for each row is stored in a new column 'pref_penalty'.
         - Finally, the function returns the sum of all penalties in the 'pref_penalty' column.
-        """
+        """    
         def pref_calc(row):
             if row['Preference'] == []:
                 return 0
@@ -254,7 +254,7 @@ class Schedule:
                     for pair in row['Pair_with']:
                         if df.loc[pair]['Assigned'] != row['Assigned']:
                             count += 1
-                return count
+                return count/2
         # Apply the count_unpaired function to each row in the DataFrame
         df['not_paired'] = df.apply(count_unpaired, axis=1)
         count = df['not_paired'].sum()
