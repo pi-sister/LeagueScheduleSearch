@@ -252,9 +252,10 @@ class Schedule:
                 # If list isn't empty, iterate through each pair
                 if isinstance(row['Pair_with'], list):
                     for pair in row['Pair_with']:
-                        if df.loc[pair]['Assigned'] != row['Assigned']:
+                        if df.at(pair, 'Assigned') != row['Assigned']:
                             count += 1
                 return count
+            
         # Apply the count_unpaired function to each row in the DataFrame
         df['not_paired'] = df.apply(count_unpaired, axis=1)
         count = df['not_paired'].sum()
@@ -313,11 +314,15 @@ class Schedule:
         # Add 'Assigned' column to total_df and initialize it
         total_df['Assigned'] = self.assigned
         total_df['Assigned'] = total_df['Assigned'].apply(lambda x: '' if isinstance(x, list) and not x else x)
+        
 
         # Merge total_df with game_slots and practice_slots on 'Assigned' column
-        df = pd.merge(total_df, game_slots, how='left', left_on='Assigned', right_index=True)
-        df = pd.merge(df, practice_slots, how='left', left_on='Assigned', right_index=True)
+        gdf = total_df[total_df['Type'] == 'G']
+        pdf = total_df[total_df['Type'] == 'P']
+        gdf = pd.merge(gdf, game_slots, how='left', left_on='Assigned', right_index=True)
+        pdf = pd.merge(pdf, practice_slots, how='left', left_on='Assigned', right_index=True)
         # This needs to be fixed - separate merges for game and practice slots
+        df = pd.concat([gdf, pdf])
 
         print('***Testing df****')
         print(df.columns)

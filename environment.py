@@ -408,7 +408,7 @@ class _PrivateParser:
                                 'Incompatible': [],
                                 'Pair_with': [],
                                 'Preference': [],
-                                'Corresp_game': 'LeagueU12T1',
+                                'Corresp_game': 'CMSAU12T1',
                                 'Part_assign': 'TU1800'}
                 special_practices.append(U12_practice)
             elif event['League'] == 'CMSA' and event['Tier'] == 'U13T1':
@@ -422,15 +422,16 @@ class _PrivateParser:
                                 'Incompatible': [],
                                 'Pair_with': [],
                                 'Preference': [],
-                                'Corresp_game': 'LeagueU13T1',
+                                'Corresp_game': 'CMSAU13T1',
                                 'Part_assign': 'TU18:00'}
                 special_practices.append(U13_practice)
 
         events.apply(special_detection, axis=1)
-        special_df = pd.DataFrame(special_practices)
-        # Proceed only if special_df is not empty
-        if not special_df.empty:
-            special_df = special_df.set_index(['League'] + special_df['Tier'])
+
+        # Proceed only if special_practices is not empty
+        if special_practices:
+            special_df = pd.DataFrame(special_practices)
+            special_df = special_df.set_index(special_df['League'] + special_df['Tier'])
             special_df = special_df.drop_duplicates(subset=['League', 'Tier'], keep='first')
             special_df = special_df.reindex(columns=events.columns, fill_value=0)
 
@@ -443,7 +444,7 @@ class _PrivateParser:
         if verbose:
             print(events.head())
             print(f'Columns: {events.columns}\n')
-            print(f'Special practices: \n{special_df}\n')
+            print(f'Special practices: \n{special_practices}\n')
             print(f'Not compatible: \n{events["Incompatible"]}\n')
             print(f'Unwanted slots: \n{events["Unwanted"]}\n')
             print(f'Preferences: \n{events["Preference"]}\n')
