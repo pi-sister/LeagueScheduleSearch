@@ -69,13 +69,14 @@ class OrTreeScheduler:
                 env (dictionary): contains all the necessary information to complete orTree (particularly
                 for the constr function)
         """
+
         # populate local variables
         self.game_slots = env.game_slots
         self.practice_slots = env.practice_slots
         # Filter the events DataFrame to include only games
         self.games = env.events[env.events['Type']=='G']
-        print("\nEvents\n", env.events)
-        print("\ngames\n ", self.games)
+        # print("\nEvents\n", env.events)
+        # print("\ngames\n ", self.games)
         self.constraints = constraints
         self.env = env
         self.length = env.event_length()
@@ -257,37 +258,59 @@ class OrTreeScheduler:
             DIV9
         """
         tempSched = schedule.Schedule.list_to_schedule(sched_list, self.env)
+        # print(f'sched_list: {sched_list}')
+        # print(tempSched.get_scheduled())
+
         # return tempSched.check_constraints()
         self.constraints.max_exceeded_reset()
 
+        # for event, details in tempSched.get_scheduled().iterrows():
+            # print(f'{event}: {details}')
+            # self.constraints.max_exceeded(details['Assigned'], details['Type'])
+
+
         for slot_counter in range(self.length):
             if sched_list[slot_counter] == "*":
-                break
+                continue
 
             if slot_counter < len(self.games):
                 #print(sched_list)
                 if not self.constraints.max_exceeded(sched_list[slot_counter], "G"):
                     return False
-            #    if not self.constraints.check_evening_div(slot_counter, schedule[slot_counter], "G"):
-            #        return False
-            # else:
-            #     if not self.constraints.max_exceeded(schedule[slot_counter], "P"):
-            #         return False
-            #     if not self.constraints.check_evening_div(slot_counter, schedule[slot_counter], "P"):
-            #         return False
+                if not self.constraints.check_evening_div(slot_counter, sched_list[slot_counter], "G"):
+                   print("Broke Evening Div")
+                   return False
+            else:
+                if not self.constraints.max_exceeded(sched_list[slot_counter], "P"):
+                    return False
+                if not self.constraints.check_evening_div(slot_counter, sched_list[slot_counter], "P"):
+                    print("Broke Evening Div")
+                    return False
                 
-            # if not self.constraints.incompatible(slot_counter, schedule):
-            #     return False
+            if not self.constraints.check_partassign(slot_counter, sched_list[slot_counter]):
+                print("Broke Partassign")
+                return False
             
-            # if slot_counter > self.games:
-            #     if not self.constraints.check_assign(slot_counter, schedule):
-            #         return False
+            if not self.constraints.incompatible(slot_counter, sched_list):
+                return False
+            
+            if slot_counter > len(self.games):
+                if not self.constraints.check_assign(slot_counter, sched_list, "pcheck"):
+                    print("Broke Practice Assign")
+                    return False
                 
-            # if not self.constraints.check_unwanted(slot_counter, schedule[slot_counter]):
-            #     return False
+            if not self.constraints.check_assign(slot_counter, sched_list, "regcheck"):
+                print("Broke Tier Assign")
+                return False
             
-            # if not self.constraints.check_partassign(slot_counter, schedule[slot_counter]):
-            #     return False
+            if self.constraints.special_events:
+                if not self.constraints.check_assign(slot_counter, sched_list, "specialcheck"):
+                    print("Broke Special Assign")
+                    return False
+                
+            if not self.constraints.check_unwanted(slot_counter, sched_list[slot_counter]):
+                print("Broke Unwanted")
+                return False
             
         return True
 
@@ -382,25 +405,32 @@ class OrTreeScheduler:
             sched_list = self.search(pr0)
 
         # return the found schedule
+        print(f'Final Sched: {sched_list}')
         return schedule.Schedule.list_to_schedule(sched_list, self.env)
 
 
 if __name__ == "__main__":
     # Load CSV with the first column as the index
-    env = env('Jamie.txt', [1,0,1,0,10,10,10,10], verbose = 1)
+    env = env('Jamie copy.txt', [1,0,1,0,10,10,10,10], verbose = 1)
+
+    # print(f'Preassignments: {env.preassigned_slots}')
+    print(f'Events: {env.events}')
 
     constraints = Constr(env)
 
     scheduler = OrTreeScheduler(constraints, env)
 
-    schedule1 = scheduler.generate_schedule().assigned
+    # schedule1 = scheduler.generate_schedule().assigned
+    schedule1 = scheduler.generate_schedule()
     print("schedule 1", schedule1)
 
     #schedule2 = scheduler.generate_schedule(schedule1).assigned
     #print("schedule 2", schedule2)
 
-    schedule3 = scheduler.generate_schedule().assigned
+    # schedule3 = scheduler.generate_schedule().assigned
+    schedule3 = scheduler.generate_schedule()
     print("schedule 3", schedule3)
 
-    schedule4 = scheduler.generate_schedule(schedule1, schedule3).assigned
+    # schedule4 = scheduler.generate_schedule(schedule1, schedule3).assigned
+    schedule4 = scheduler.generate_schedule(schedule1, schedule3)
     print("schedule 4", schedule4)
