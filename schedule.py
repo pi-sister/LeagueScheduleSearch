@@ -97,6 +97,12 @@ class Schedule:
         Method to obtain all current assignments
         """
         return self.events['Assigned']
+    
+    def get_Tiers(self):
+        """
+        Method to obtain all current assignments
+        """
+        return self.events[['Assigned', 'Tier', 'Type']]
 
     def get_Starting(self):
         """
@@ -291,7 +297,7 @@ class Schedule:
                 # If list isn't empty, iterate through each pair
                 if isinstance(row['Pair_with'], list):
                     for pair in row['Pair_with']:
-                        if df.at(pair, 'Assigned') != row['Assigned']:
+                        if df.loc[pair]['Assigned'] != row['Assigned']:
                             count += 1
                 return count
             

@@ -37,10 +37,10 @@ class Constr:
         self.__u13t1s = env.events["Tier"].isin(["U13T1"]).any()
         self.__u12t1s = env.events["Tier"].isin(["U12T1"]).any()
 
-
         # Variables for checking if max exceeded
         self.game_counter = []
         self.practice_counter = []
+        self.u15_plus_slots = set()
 
         self.game_slot_lookup = dict(zip(list(env.game_slots.index), list(range(0,self.env.game_slot_num()))))
         self.practice_slot_lookup = dict(zip(list(env.practice_slots.index), list(range(0,self.env.practice_slot_num()))))
@@ -60,6 +60,8 @@ class Constr:
         self.game_counter = [0] * self.env.game_slot_num()
         self.practice_counter = [0] * self.env.practice_slot_num()
 
+    def reset_slots(self):
+        self.u15_plus_slots = set()
 
     def max_exceeded(self, slot: str, slot_type: str):
         """
@@ -176,6 +178,47 @@ class Constr:
             event_indices = [self.env.events.index.get_loc(label) for label in related_events]
 
             return self.pcheck(schedule, current_index, event_indices)
+        
+    def check_assign2(self, df_info, curr_tier, curr_time, corresponding_game, mode):
+        if mode == "regcheck":
+            if not curr_tier.startswith(('U15', 'U16', 'U17', 'U18', 'U19')):
+                return True
+
+            if curr_time == "*":
+                return True
+            
+            print(f'Time: {curr_time} \t Set{self.u15_plus_slots}')
+
+            if curr_time in self.u15_plus_slots:
+                return False
+            
+            self.u15_plus_slots.add(curr_time)
+            return True
+
+        related_events = None
+
+        if mode == "specialcheck":
+            if (self.__u13t1s and curr_tier.startswith('U13T1S')):
+                related_events = df_info[
+                    (df_info['Tier'].str.startswith('U13T1')) &
+                    ~(df_info['Tier'] == 'U13T1S')
+                ][['Assigned','Type']]
+
+            if (self.__u12t1s and curr_tier.startswith('U12T1S')):
+                related_events = df_info[
+                    (df_info['Tier'].str.startswith('U12T1')) &
+                    ~(df_info['Tier'] == 'U12T1S')
+                ][['Assigned','Type']]
+
+            if related_events is None:
+                return True
+
+            return self.pcheck2(curr_time, related_events)
+
+        if mode == "pcheck":
+            related_event = df_info.loc[corresponding_game, ['Assigned', 'Type']]
+
+            return self.pcheck2(curr_time, related_event)
     
     def pcheck(self, schedule, practice_index, search_events):
         practice_day = schedule[practice_index][:2]
@@ -229,6 +272,58 @@ class Constr:
                 return False
         
         return True
+    
+    def pcheck2(self, curr_time, corresponding_events):
+        practice_day = curr_time[:2]
+        practice_time = datetime.strptime(curr_time[2:], "%H:%M").time()
+        practice_datetime = datetime.combine(datetime.min, practice_time)
+
+        if (practice_day == 'MO') or (practice_day == 'TU'):
+            practice_duration = timedelta(hours=1)
+        else:
+            practice_duration = timedelta(hours=2)
+        
+        practice_end_datetime = practice_datetime + practice_duration
+
+        practice_end = practice_end_datetime.time()
+
+        result = True
+        for _, detail in corresponding_events.iterrows():
+            if detail['Type'] == 'G':
+
+                if ((practice_day == 'FR') and (detail['Assigned'][:2] == 'MO')):
+                    game_start = datetime.strptime(detail['Assigned'][2:], "%H:%M").time()
+
+                    result = not((practice_time <= game_start) and (game_start < practice_end))
+                
+                elif ((practice_day == 'TU') and (detail['Assigned'][:2] == 'TU')):
+                    game_start = datetime.strptime(detail['Assigned'][2:], "%H:%M").time()
+
+                    # Convert time to datetime (use a dummy date, e.g., '1900-01-01')
+                    game_start_datetime = datetime.combine(datetime.min, game_start)
+
+                    # Add 1 hour and 30 minutes
+                    game_duration = timedelta(hours=1, minutes=30)
+  
+                    game_end_datetime = game_start_datetime + game_duration
+
+                    # Convert back to time object
+                    game_end = game_end_datetime.time()
+
+                    result = not(
+                        ((game_start <= practice_time) and (practice_time < game_end)) and 
+                        ((game_start <= practice_end) and (practice_time < practice_end))
+                    )
+                else: 
+                    result = not(curr_time == detail['Assigned'])
+            else: 
+                result = not(curr_time == detail['Assigned'])
+
+            if not result:
+                return False
+        
+        return True
+
     
     def check_unwanted(self, event_index, time_slot):
         return time_slot not in self.env.events.iloc[event_index]['Unwanted']

@@ -264,6 +264,7 @@ class OrTreeScheduler:
 
         # return tempSched.check_constraints()
         self.constraints.max_exceeded_reset()
+        self.constraints.reset_slots
 
         for event_id, event_details in tempSched:
             # print(index)
@@ -284,7 +285,19 @@ class OrTreeScheduler:
             
             if not self.constraints.check_evening_div2(event_details["Assigned"][2:], event_details["Div"]):
                 print("Schedule Broke Evening Div")
-            pass
+
+            if not self.constraints.check_assign2(tempSched.get_Tiers(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"regcheck"):
+                print(f"Schedule Broke Tier Assign {event_details['Tier']}\n")
+
+            if self.constraints.special_events:
+                if not self.constraints.check_assign2(tempSched.get_Tiers(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"specialcheck"):
+                    print("Schedule Broke Special Assign")
+                    # return False
+                
+            if event_details["Type"] == "P":
+                if not self.constraints.check_assign2(tempSched.get_Tiers(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"specialcheck"):
+                    print("Schedule Broke Practice Assign")
+                    # return Falsexs
 
         for slot_counter in range(self.length):
             if sched_list[slot_counter] == "*":
