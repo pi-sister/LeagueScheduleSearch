@@ -260,43 +260,33 @@ class OrTreeScheduler:
         self.constraints.reset_slots()
 
         for _, event_details in tempSched:
-            # print(index)
             if event_details["Assigned"] == "*":
                 continue
 
             if not tempSched.max_exceeded(event_details["Assigned"], event_details["Type"]):
-                print("Schedule Broke Max")
                 return False
 
             if (event_details["Assigned"] != event_details["Part_assign"]) and (event_details["Part_assign"] != "*"):
-                print("Schedule Broke Part_assign")
                 return False
             
             if event_details["Assigned"] in event_details['Unwanted']:
-                print("Schedule Broke Unwanted")
                 return False
 
             if not self.constraints.incompatible(tempSched.get_Assignments(), event_details["Incompatible"], event_details["Type"], event_details["Assigned"]):
-                print("Schedule Broke Incompatible")
                 return False
             
             if not self.constraints.check_evening_div(event_details["Assigned"][2:], event_details["Div"]):
-                print("Schedule Broke Evening Div")
                 return False
 
             if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"regcheck"):
-                print(f"Schedule Broke Tier Assign {event_details['Tier']}\n")
                 return False
 
             if self.constraints.special_events:
                 if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"specialcheck"):
-                    print("Schedule Broke Special Assign")
                     return False
-                    # return False
                 
             if event_details["Type"] == "P":
                 if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"specialcheck"):
-                    print("Schedule Broke Practice Assign")
                     return False
 
         return True

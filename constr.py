@@ -95,8 +95,6 @@ class Constr:
 
             if curr_time == "*":
                 return True
-            
-            print(f'Time: {curr_time} \t Set{self.u15_plus_slots}')
 
             if curr_time in self.u15_plus_slots:
                 return False
