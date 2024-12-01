@@ -96,12 +96,6 @@ class Schedule:
         """
         Method to obtain all current assignments
         """
-        return self.events['Assigned']
-    
-    def get_Tiers(self):
-        """
-        Method to obtain all current assignments
-        """
         return self.events[['Assigned', 'Tier', 'Type']]
 
     def get_Starting(self):

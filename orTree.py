@@ -254,94 +254,51 @@ class OrTreeScheduler:
             Parameters:
                 schedule (list): partially or fully defined schedule
 
-            Ok so I need to take account of
-            DIV9
         """
         tempSched = schedule.Schedule.list_to_schedule(sched_list, self.env)
-        print(f'sched_list: {sched_list}')
-        print(f'schedulized list: {tempSched}')
-        # print(tempSched.get_scheduled())
+  
+        self.constraints.reset_slots()
 
-        # return tempSched.check_constraints()
-        self.constraints.max_exceeded_reset()
-        self.constraints.reset_slots
-
-        for event_id, event_details in tempSched:
+        for _, event_details in tempSched:
             # print(index)
             if event_details["Assigned"] == "*":
                 continue
 
             if not tempSched.max_exceeded(event_details["Assigned"], event_details["Type"]):
                 print("Schedule Broke Max")
+                return False
 
             if (event_details["Assigned"] != event_details["Part_assign"]) and (event_details["Part_assign"] != "*"):
                 print("Schedule Broke Part_assign")
+                return False
             
             if event_details["Assigned"] in event_details['Unwanted']:
                 print("Schedule Broke Unwanted")
+                return False
 
-            if not self.constraints.incompatible2(tempSched.get_Assignments(), event_details["Incompatible"], event_id):
+            if not self.constraints.incompatible(tempSched.get_Assignments(), event_details["Incompatible"], event_details["Type"], event_details["Assigned"]):
                 print("Schedule Broke Incompatible")
+                return False
             
-            if not self.constraints.check_evening_div2(event_details["Assigned"][2:], event_details["Div"]):
+            if not self.constraints.check_evening_div(event_details["Assigned"][2:], event_details["Div"]):
                 print("Schedule Broke Evening Div")
+                return False
 
-            if not self.constraints.check_assign2(tempSched.get_Tiers(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"regcheck"):
+            if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"regcheck"):
                 print(f"Schedule Broke Tier Assign {event_details['Tier']}\n")
+                return False
 
             if self.constraints.special_events:
-                if not self.constraints.check_assign2(tempSched.get_Tiers(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"specialcheck"):
+                if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"specialcheck"):
                     print("Schedule Broke Special Assign")
+                    return False
                     # return False
                 
             if event_details["Type"] == "P":
-                if not self.constraints.check_assign2(tempSched.get_Tiers(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"specialcheck"):
+                if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"specialcheck"):
                     print("Schedule Broke Practice Assign")
-                    # return Falsexs
+                    return False
 
-        for slot_counter in range(self.length):
-            if sched_list[slot_counter] == "*":
-                continue
-
-            if slot_counter < len(self.games):
-                #print(sched_list)
-                if not self.constraints.max_exceeded(sched_list[slot_counter], "G"):
-                    return False
-                if not self.constraints.check_evening_div(slot_counter, sched_list[slot_counter], "G"):
-                   print("Broke Evening Div")
-                   return False
-            else:
-                if not self.constraints.max_exceeded(sched_list[slot_counter], "P"):
-                    return False
-                if not self.constraints.check_evening_div(slot_counter, sched_list[slot_counter], "P"):
-                    print("Broke Evening Div")
-                    return False
-                
-            if not self.constraints.check_partassign(slot_counter, sched_list[slot_counter]):
-                print("Broke Partassign")
-                return False
-            
-            if not self.constraints.incompatible(slot_counter, sched_list):
-                return False
-            
-            if slot_counter > len(self.games):
-                if not self.constraints.check_assign(slot_counter, sched_list, "pcheck"):
-                    print("Broke Practice Assign")
-                    return False
-                
-            if not self.constraints.check_assign(slot_counter, sched_list, "regcheck"):
-                print("Broke Tier Assign")
-                return False
-            
-            if self.constraints.special_events:
-                if not self.constraints.check_assign(slot_counter, sched_list, "specialcheck"):
-                    print("Broke Special Assign")
-                    return False
-                
-            if not self.constraints.check_unwanted(slot_counter, sched_list[slot_counter]):
-                print("Broke Unwanted")
-                return False
-            
         return True
 
 
@@ -441,7 +398,8 @@ class OrTreeScheduler:
 
 if __name__ == "__main__":
     # Load CSV with the first column as the index
-    env = env('Jamie copy.txt', [1,0,1,0,10,10,10,10], verbose = 1)
+    # env = env('Jamie copy.txt', [1,0,1,0,10,10,10,10], verbose = 1)
+    env = env('example.txt', [1,0,1,0,10,10,10,10], verbose = 1)
 
     # print(f'Preassignments: {env.preassigned_slots}')
     print(f'Events:\n {env.events.columns}')
