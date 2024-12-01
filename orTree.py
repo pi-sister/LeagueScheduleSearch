@@ -258,16 +258,33 @@ class OrTreeScheduler:
             DIV9
         """
         tempSched = schedule.Schedule.list_to_schedule(sched_list, self.env)
-        # print(f'sched_list: {sched_list}')
+        print(f'sched_list: {sched_list}')
+        print(f'schedulized list: {tempSched}')
         # print(tempSched.get_scheduled())
 
         # return tempSched.check_constraints()
         self.constraints.max_exceeded_reset()
 
-        # for event, details in tempSched.get_scheduled().iterrows():
-            # print(f'{event}: {details}')
-            # self.constraints.max_exceeded(details['Assigned'], details['Type'])
+        for event_id, event_details in tempSched:
+            # print(index)
+            if event_details["Assigned"] == "*":
+                continue
 
+            if not tempSched.max_exceeded(event_details["Assigned"], event_details["Type"]):
+                print("Schedule Broke Max")
+
+            if (event_details["Assigned"] != event_details["Part_assign"]) and (event_details["Part_assign"] != "*"):
+                print("Schedule Broke Part_assign")
+            
+            if event_details["Assigned"] in event_details['Unwanted']:
+                print("Schedule Broke Unwanted")
+
+            if not self.constraints.incompatible2(tempSched.get_Assignments(), event_details["Incompatible"], event_id):
+                print("Schedule Broke Incompatible")
+            
+            if not self.constraints.check_evening_div2(event_details["Assigned"][2:], event_details["Div"]):
+                print("Schedule Broke Evening Div")
+            pass
 
         for slot_counter in range(self.length):
             if sched_list[slot_counter] == "*":
@@ -414,7 +431,9 @@ if __name__ == "__main__":
     env = env('Jamie copy.txt', [1,0,1,0,10,10,10,10], verbose = 1)
 
     # print(f'Preassignments: {env.preassigned_slots}')
-    print(f'Events: {env.events}')
+    print(f'Events:\n {env.events.columns}')
+    print(f'Practiceslots:\n {env.practice_slots}')
+    print(f'Gameslots:\n {env.game_slots}')
 
     constraints = Constr(env)
 
@@ -428,9 +447,9 @@ if __name__ == "__main__":
     #print("schedule 2", schedule2)
 
     # schedule3 = scheduler.generate_schedule().assigned
-    schedule3 = scheduler.generate_schedule()
-    print("schedule 3", schedule3)
+    # schedule3 = scheduler.generate_schedule()
+    # print("schedule 3", schedule3)
 
     # schedule4 = scheduler.generate_schedule(schedule1, schedule3).assigned
-    schedule4 = scheduler.generate_schedule(schedule1, schedule3)
-    print("schedule 4", schedule4)
+    # schedule4 = scheduler.generate_schedule(schedule1, schedule3)
+    # print("schedule 4", schedule4)

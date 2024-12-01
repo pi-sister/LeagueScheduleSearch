@@ -102,6 +102,24 @@ class Constr:
 
         return True
     
+    def incompatible2(self, event_assignments, incompatible_list, event):
+        if not incompatible_list:
+            return True
+        
+        incompatible_checker = set()
+        relevant_events = event_assignments.loc[incompatible_list]
+
+        for event_id, slot in relevant_events.items():
+            if event_id == event:
+                continue
+
+            if slot in incompatible_checker:
+                return False
+            
+            incompatible_checker.add(slot)
+
+        return True
+    
     def check_assign(self, current_index, schedule, mode):
         related_events = []
 
@@ -234,4 +252,13 @@ class Constr:
         event_time = datetime.strptime(event_time, "%H:%M").time()
 
         return self.evening >= event_time
+    
+    def check_evening_div2(self, time_string, division):
+        if division != '09':
+            return True
+        
+        event_time = datetime.strptime(time_string, "%H:%M").time()
+
+        return self.evening >= event_time
+
 
