@@ -65,7 +65,7 @@ class Constr:
         if not incompatible_list:
             return True
         
-        relevant_events = event_assignments.loc[incompatible_list]
+        relevant_events = event_assignments.loc[incompatible_list, ['Assigned','Type']]
 
         # Already compared this incompatible list
         if tuple(relevant_events) in self.incompatible_checker:
@@ -107,15 +107,15 @@ class Constr:
         if mode == "specialcheck":
             if (self.__u13t1s and curr_tier.startswith('U13T1S')):
                 related_events = df_info[
-                    (df_info['Tier'].str.startswith('U13T1')) &
-                    ~(df_info['Tier'] == 'U13T1S')
-                ][['Assigned','Type']]
+                    [(df_info['Tier'].str.startswith('U13T1')) &
+                    ~(df_info['Tier'] == 'U13T1S')]
+                ]
 
             if (self.__u12t1s and curr_tier.startswith('U12T1S')):
                 related_events = df_info[
-                    (df_info['Tier'].str.startswith('U12T1')) &
-                    ~(df_info['Tier'] == 'U12T1S')
-                ][['Assigned','Type']]
+                    [(df_info['Tier'].str.startswith('U12T1')) &
+                    ~(df_info['Tier'] == 'U12T1S')]
+                ]
 
             if related_events is None:
                 return True
@@ -123,7 +123,7 @@ class Constr:
             return self.__check_time_overlap(curr_time, "P", related_events)
 
         if mode == "pcheck":
-            related_event = df_info.loc[corresponding_game, ['Assigned', 'Type']]
+            related_event = df_info.loc[[corresponding_game]]
 
             return self.__check_time_overlap(curr_time, "P", related_event)
     

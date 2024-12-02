@@ -256,6 +256,7 @@ class OrTreeScheduler:
 
         """
         tempSched = schedule.Schedule.list_to_schedule(sched_list, self.env)
+
   
         self.constraints.reset_slots()
 
@@ -264,29 +265,37 @@ class OrTreeScheduler:
                 continue
 
             if not tempSched.max_exceeded(event_details["Assigned"], event_details["Type"]):
+                print("Failed Max")
                 return False
 
             if (event_details["Assigned"] != event_details["Part_assign"]) and (event_details["Part_assign"] != "*"):
+                print("Failed Part_assign")
                 return False
             
             if event_details["Assigned"] in event_details['Unwanted']:
+                print("Failed Unwanted")
                 return False
 
             if not self.constraints.incompatible(tempSched.get_Assignments(), event_details["Incompatible"], event_details["Type"], event_details["Assigned"]):
+                print("Failed Incompatible")
                 return False
             
             if not self.constraints.check_evening_div(event_details["Assigned"][2:], event_details["Div"]):
+                print("Failed Evening Div")
                 return False
 
             if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"regcheck"):
+                print("Failed U15-U19 Check")
                 return False
 
             if self.constraints.special_events:
                 if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"specialcheck"):
-                    return False
-                
-            if event_details["Type"] == "P":
-                if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"specialcheck"):
+                    print("Failed Special Check")
+                    return False   
+                     
+            if event_details["Type"] == "P" and ((event_details["Tier"] != 'U13T1S') or (event_details["Tier"] != 'U12T1S')):
+                if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"pcheck"):
+                    print("Failed Practice Check")
                     return False
 
         return True
@@ -389,6 +398,7 @@ class OrTreeScheduler:
 if __name__ == "__main__":
     # Load CSV with the first column as the index
     # env = env('Jamie copy.txt', [1,0,1,0,10,10,10,10], verbose = 1)
+    # env = env('softConstraintsWOComments.txt', [1,0,1,0,10,10,10,10], verbose = 1)
     env = env('example.txt', [1,0,1,0,10,10,10,10], verbose = 1)
 
     # print(f'Preassignments: {env.preassigned_slots}')

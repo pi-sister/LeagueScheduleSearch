@@ -101,7 +101,7 @@ class Schedule:
         """
         Method to obtain all current assignments
         """
-        return self.events[['Assigned', 'Tier', 'Type']]
+        return self.events[['Assigned', 'League', 'Tier', 'Div','Type', 'Corresp_game']]
 
     def get_Starting(self):
         """
@@ -191,11 +191,14 @@ class Schedule:
         Returns:
             bool: True if the slot limit is not exceeded, False otherwise.
         """
-        
+ 
         if slot_type == 'G':
             return self.gslots.at[slot, 'count'] <= self.gslots.at[slot, 'Max']
         elif slot_type == 'P':
-            return self.pslots.at[slot, 'count'] <= self.pslots.at[slot, 'Max']
+            if slot in self.pslots.index:
+                return self.pslots.at[slot, 'count'] <= self.pslots.at[slot, 'Max']
+            
+            raise ValueError(f"Slot {slot} is not in practice slots")
         else:
             raise ValueError("Invalid slot type. Must be 'G' or 'P'.")
         
