@@ -1,0 +1,26 @@
+Name:
+Test_Partial_Assignment
+
+Game slots:
+MO, 8:00, 4, 2
+TU, 10:00, 4, 2
+
+Practice slots:
+TU, 11:00, 4, 2
+FR, 9:00, 4, 2
+
+Games:
+CMSA U12 DIV 01
+CMSA U15 DIV 01
+
+Practices:
+CMSA U12 PRC 01
+CMSA U15 PRC 01
+
+Partial assignments:
+CMSA U12 DIV 01, MO, 8:00
+CMSA U15 DIV 01, TU, 10:00
+CMSA U15 PRC 01, TU, 11:00
+CMSA U12 PRC 01, FR, 9:00
+
+
