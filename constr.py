@@ -23,215 +23,244 @@ class Constr:
         each game/practice and their slots variable.
 
             Parameters:
-                env (dictionary): contains all the necessary information to complete orTree (particularly
-                for the constr function) <- will eventually add as I go through each function
-                    env.game_slots (dataframe): dataframe of each game slot and their attributes
-                    env.practice_slots (dataframe): dataframe of each practice slot and their attributes
-                    env.events (dataframe): dataframe of each game and practice plus their attributes
+                evening: A time object that indicates the minimum time for an evening slot
+                __u13t1s: A boolean indicating whether to consider the special U13T1S practices
+                __u12t1s: A boolean indicating whether to consider the special U12T1S practices
+                u15_plus_slots: A set of strings representing U15 - U19 game slots. 
+                    Only considers game comparisons and not practices.
+                incompatible_checker: A set of tuples representing already checked incompatible lists.
+                    Considers both practices and game overlap.
         """
-        # populate local variables
-        self.env = env
-        # evening
+
         self.evening = datetime.strptime("18:00", "%H:%M").time()
 
         self.__u13t1s = env.events["Tier"].isin(["U13T1"]).any()
         self.__u12t1s = env.events["Tier"].isin(["U12T1"]).any()
 
-
-        # Variables for checking if max exceeded
-        self.game_counter = []
-        self.practice_counter = []
-
-        self.game_slot_lookup = dict(zip(list(env.game_slots.index), list(range(0,self.env.game_slot_num()))))
-        self.practice_slot_lookup = dict(zip(list(env.practice_slots.index), list(range(0,self.env.practice_slot_num()))))
+        self.u15_plus_slots = set()
+        self.incompatible_checker = set()
     
-    # Change this so we accept one slot and create a counter that will retunr T or F
-    # Find a way to reset
     @property
     def special_events(self):
+        """
+        A boolean which indicates whether special events are considered or not
+        """
         return (self.__u13t1s or self.__u12t1s)
+
+
+    def reset_slots(self):
+        """
+        Indicates a new partial or complete schedule is being checked and to dump previously counted
+        slots.
+        """
+        self.u15_plus_slots = set()
+        self.incompatible_checker = set()
     
-    def max_exceeded_reset(self):
-        """
-        resets the counter for number of games or practices in a slot to prepare
-        for checking the constraints in a new schedule
-        """
-        # Lists to count the # of occurrences of each slot in the schedule
-        self.game_counter = [0] * self.env.game_slot_num()
-        self.practice_counter = [0] * self.env.practice_slot_num()
-
-
-    def max_exceeded(self, slot: str, slot_type: str):
-        """
-        accepts a slot and the slot type (game or practice) as input and add it
-        to the counter. If the slots counter exceeds the limit return False
-        """
-
-        if slot_type == 'G':
-            self.game_counter[self.game_slot_lookup[slot]] += 1
-            # print("game_counter", self.game_counter, "\nlookupslot: ", self.game_slot_lookup[slot], "\nmaxSlots type: ", type(self.env.game_slots.loc[slot, 'Max']))
-            if self.game_counter[self.game_slot_lookup[slot]] > int(self.env.game_slots.loc[slot,'Max']):
-                print("Broke Gamemax")
-                return False
-            
-        if slot_type == 'P':
-            self.practice_counter[self.practice_slot_lookup[slot]] += 1
-            if self.practice_counter[self.practice_slot_lookup[slot]] > int(self.env.practice_slots.loc[slot,'Max']):
-                print("Broke Practicemax")
-                return False
-            
-        return True
     
-    def incompatible(self, event_index, schedule):
-        # wrong : (
-        if not self.env.events.iloc[event_index]['Incompatible']:
-            return True
-          
-        row_numbers = [self.env.events.index.get_loc(label) for label in self.env.events.iloc[event_index]['Incompatible']]
-
-        slot_set = set()
-        for i in row_numbers:
-            if schedule[i] == "*":
-                break
-            
-            if (schedule[i] in slot_set):
-                print("Broke Incompatible")
-                return False
-            
-            slot_set.add(schedule[i])
-
-        return True
-    
-    def check_assign(self, current_index, schedule, mode):
-        related_events = []
-
-        if mode == "regcheck":
-            if not self.env.events.iloc[current_index]['Tier'].startswith(('U15', 'U16', 'U17', 'U18', 'U19')):
-                return True
-            
-            related_events = self.env.events[
-                (self.env.events['Tier'].str.startswith(('U15', 'U16', 'U17', 'U18', 'U19'))) &
-                (self.env.events['Type'] == 'G')
-            ].index.tolist()
-
-            event_indices = [self.env.events.index.get_loc(label) for label in related_events]
-
-            for event_index in event_indices:
-                if (schedule[event_index] == "*") or (event_index == current_index):
-                    continue
-                if (schedule[current_index] == schedule[event_index]):
-                    return False
-            
+    def incompatible(self, event_assignments, incompatible_list, event_type, event_time):
+        """
+        Takes the incompatible list from an event, if there is one, and checks if there are overlaps
+        in the scheduled times
+        """
+        if not incompatible_list:
             return True
         
-        if mode == "specialcheck":
-            if (self.__u13t1s and self.env.events.iloc[current_index]['Tier'].startswith('U13T1S')):
-                related_events = self.env.events[
-                    (self.env.events['Tier'].str.startswith('U13T1'))
-                ].index.tolist()
+        relevant_events = event_assignments.loc[incompatible_list]
 
-            if (self.__u12t1s and self.env.events.iloc[current_index]['Tier'].startswith('U12T1S')):
-                related_events = self.env.events[
-                    (self.env.events['Tier'].str.startswith('U12T1'))
-                ].index.tolist()
+        # Already compared this incompatible list
+        if tuple(relevant_events) in self.incompatible_checker:
+            return True
+        
+        self.incompatible_checker.add(tuple(relevant_events))
 
-            if not related_events:
+        return self.__check_time_overlap(self, event_time, event_type, relevant_events)
+        
+    def check_assign(self, df_info, curr_tier, curr_time, corresponding_game, mode):
+        """
+        Checks the assignments of events under 3 modes
+        Mode: regcheck
+            - Checks for time overlaps between U15 - U19 Games. (Not practices)
+        Mode: specialcheck
+            - Checks for time overlaps between the U13T1S/U12T1S special practices with the
+              U13T1/U12T1 games/practices
+        Mode: specialcheck
+            - Checks for time overlaps between the U13T1S/U12T1S special practices with the
+              U13T1/U12T1 games/practices
+        Mode: pcheck
+            - Checks for time overlaps between a practice booking and it's corresponding game
+        """
+        if mode == "regcheck":
+            if not curr_tier.startswith(('U15', 'U16', 'U17', 'U18', 'U19')):
                 return True
+
+            if curr_time == "*":
+                return True
+
+            if curr_time in self.u15_plus_slots:
+                return False
             
-            event_indices = [self.env.events.index.get_loc(label) for label in related_events]
+            self.u15_plus_slots.add(curr_time)
+            return True
 
-            return self.pcheck(schedule, current_index, event_indices)
+        related_events = None
 
+        if mode == "specialcheck":
+            if (self.__u13t1s and curr_tier.startswith('U13T1S')):
+                related_events = df_info[
+                    (df_info['Tier'].str.startswith('U13T1')) &
+                    ~(df_info['Tier'] == 'U13T1S')
+                ][['Assigned','Type']]
 
-        compared_event = self.env.events.index[current_index]
+            if (self.__u12t1s and curr_tier.startswith('U12T1S')):
+                related_events = df_info[
+                    (df_info['Tier'].str.startswith('U12T1')) &
+                    ~(df_info['Tier'] == 'U12T1S')
+                ][['Assigned','Type']]
+
+            if related_events is None:
+                return True
+
+            return self.__check_time_overlap(curr_time, "P", related_events)
 
         if mode == "pcheck":
-            if 'PRC' in compared_event:
-                corresponding_game = compared_event.partition('PRC')[0]
-            else:
-                corresponding_game = compared_event.partition('OPN')[0]
+            related_event = df_info.loc[corresponding_game, ['Assigned', 'Type']]
 
-            related_events = self.env.events[
-                (self.env.events.index.str.startswith(corresponding_game))
-            ].index.tolist()
-
-            event_indices = [self.env.events.index.get_loc(label) for label in related_events]
-
-            return self.pcheck(schedule, current_index, event_indices)
+            return self.__check_time_overlap(curr_time, "P", related_event)
     
-    def pcheck(self, schedule, practice_index, search_events):
-        practice_day = schedule[practice_index][:2]
-        practice_time = datetime.strptime(schedule[practice_index][2:], "%H:%M").time()
-        practice_datetime = datetime.combine(datetime.min, practice_time)
+    def __check_time_overlap(self, curr_time, event_type, corresponding_events):
+        """
+        With the given input check if any of the corresponding events overlap with the current event
+        """
+        event_day = curr_time[:2]
+        event_time = datetime.strptime(curr_time[2:], "%H:%M").time()
+        event_datetime = datetime.combine(datetime.min, event_time)
 
-        if (practice_day == 'MO') or (practice_day == 'TU'):
-            practice_duration = timedelta(hours=1)
-        else:
-            practice_duration = timedelta(hours=2)
+        if event_type == "P":
+            if (event_day == 'MO') or (event_day == 'TU'):
+                event_duration = timedelta(hours=1)
+            else:
+                event_duration = timedelta(hours=2)
+        else: 
+            if (event_day == 'MO'):
+                event_duration = timedelta(hours=1)
+            else:
+                event_duration = timedelta(hours=1,minutes=30)
         
-        practice_end_datetime = practice_datetime + practice_duration
+        event_end_datetime = event_datetime + event_duration
 
-        practice_end = practice_end_datetime.time()
+        event_end = event_end_datetime.time()
 
-        result = True
-        for event_index in search_events:
-            if (schedule[event_index] == "*") or (event_index == practice_index):
-                continue
-
-            if event_index < self.env.game_slot_num():
-                if ((practice_day == 'FR') and (schedule[event_index][:2] == 'MO')):
-                    game_start = datetime.strptime(schedule[event_index][2:], "%H:%M").time()
-
-                    result = not((practice_time <= game_start) and (game_start < practice_end))
-                    
-                elif ((practice_day == 'TU') and (schedule[event_index][:2] == 'TU')):
-                    game_start = datetime.strptime(schedule[event_index][2:], "%H:%M").time()
-
-                    # Convert time to datetime (use a dummy date, e.g., '1900-01-01')
-                    game_start_datetime = datetime.combine(datetime.min, game_start)
-
-                    # Add 1 hour and 30 minutes
-                    game_duration = timedelta(hours=1, minutes=30)
-  
-                    game_end_datetime = game_start_datetime + game_duration
-
-                    # Convert back to time object
-                    game_end = game_end_datetime.time()
-
-                    result = not(
-                        ((game_start <= practice_time) and (practice_time < game_end)) and 
-                        ((game_start <= practice_end) and (practice_time < practice_end))
-                    )
-                else: 
-                    result = not(schedule[practice_index] == schedule[event_index])
-            else: 
-                result = not(schedule[practice_index] == schedule[event_index])
-
-            if not result:
-                return False
+        for _, detail in corresponding_events.iterrows():
+            if event_type == "P":
+                if not self.__practice_time_compare(curr_time, event_day, event_time, event_end, detail):
+                    return False
+            else:
+                if not self.__game_time_compare(curr_time, event_day, event_time, event_end, detail):
+                    return False
         
         return True
     
-    def check_unwanted(self, event_index, time_slot):
-        return time_slot not in self.env.events.iloc[event_index]['Unwanted']
-    
-    def check_partassign(self, event_index, time_slot):
-        if self.env.events.iloc[event_index]['Part_assign'] == "*":
-            return True
-        
-        return time_slot == self.env.events.iloc[event_index]['Part_assign']
-    
-    def check_evening_div(self, event_index, time_slot, event_type):
-        if self.env.events.iloc[event_index]['Div'] != '09':
-            return True
-        
-        event_time = None
-        if event_type == 'G':
-            event_time = self.env.game_slots.loc[time_slot,'Start']
-        else:
-            event_time = self.env.practice_slots.loc[time_slot,'Start']
+    def __practice_time_compare(self, practice_slot, practice_day, practice_time, practice_end, event_detail):
+        """
+        Compares time overlap between a practice and some event
+        """
+        result = True
 
-        event_time = datetime.strptime(event_time, "%H:%M").time()
+        if event_detail['Type'] == 'G':
+
+            if ((practice_day == 'FR') and (event_detail['Assigned'][:2] == 'MO')):
+                game_start = datetime.strptime(event_detail['Assigned'][2:], "%H:%M").time()
+
+                result = not((practice_time <= game_start) and (game_start < practice_end))
+            
+            elif ((practice_day == 'TU') and (event_detail['Assigned'][:2] == 'TU')):
+                game_start = datetime.strptime(event_detail['Assigned'][2:], "%H:%M").time()
+
+                # Convert time to datetime (use a dummy date, e.g., '1900-01-01')
+                game_start_datetime = datetime.combine(datetime.min, game_start)
+
+                # Add 1 hour and 30 minutes
+                game_duration = timedelta(hours=1, minutes=30)
+
+                game_end_datetime = game_start_datetime + game_duration
+
+                # Convert back to time object
+                game_end = game_end_datetime.time()
+
+                result = not(
+                    ((game_start <= practice_time) and (practice_time < game_end)) and 
+                    ((game_start <= practice_end) and (practice_time < practice_end))
+                )
+            else: 
+                result = not(practice_slot == event_detail['Assigned'])
+        else: 
+            result = not(practice_slot == event_detail['Assigned'])
+
+        if not result:
+            return False
+        
+        return True
+    
+    def __game_time_compare(self, game_slot, game_day, game_time, game_end, event_detail):
+        """
+        Compares time overlap between a game and some event
+        """
+        result = True
+        
+        if event_detail['Type'] == 'P':
+
+            if ((event_detail['Assigned'][:2] == 'FR') and (game_day == 'MO')):
+                practice_start = datetime.strptime(event_detail['Assigned'][2:], "%H:%M").time()
+
+                # Convert time to datetime (use a dummy date, e.g., '1900-01-01')
+                practice_start_datetime = datetime.combine(datetime.min, practice_start)
+
+                # Add 2 hours
+                practice_duration = timedelta(hours=2)
+                practice_end_datetime = practice_start_datetime + practice_duration
+
+                # Convert back to time object
+                practice_end = practice_end_datetime.time()
+
+                result = not((practice_start <= game_time) and (game_time < practice_end))
+            
+            elif ((event_detail['Assigned'][:2] == 'TU') and (game_day == 'TU')):
+                practice_start = datetime.strptime(event_detail['Assigned'][2:], "%H:%M").time()
+
+                # Convert time to datetime (use a dummy date, e.g., '1900-01-01')
+                practice_start_datetime = datetime.combine(datetime.min, practice_start)
+
+                # Add 1 hour 
+                practice_duration = timedelta(hours=1)
+                practice_end_datetime = practice_start_datetime + practice_duration
+
+                # Convert back to time object
+                practice_end = practice_end_datetime.time()
+
+                result = not(
+                    ((game_time <= practice_start) and (practice_start < game_end)) and 
+                    ((game_time <= practice_end) and (practice_start < practice_end))
+                )
+            else: 
+                result = not(game_slot == event_detail['Assigned'])
+        else: 
+            result = not(game_slot == event_detail['Assigned'])
+
+        if not result:
+            return False
+        
+        return True
+
+    def check_evening_div(self, time_string, division):
+        """
+        Checks if the event is in division 9, and if so if it was assigned to
+        and evening slot
+        """
+        if division != '09':
+            return True
+        
+        event_time = datetime.strptime(time_string, "%H:%M").time()
 
         return self.evening >= event_time
+
 
