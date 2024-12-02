@@ -107,14 +107,14 @@ class Constr:
         if mode == "specialcheck":
             if (self.__u13t1s and curr_tier.startswith('U13T1S')):
                 related_events = df_info[
-                    [(df_info['Tier'].str.startswith('U13T1')) &
-                    ~(df_info['Tier'] == 'U13T1S')]
+                    (df_info['Tier'].str.startswith('U13T1')) &
+                    ~(df_info['Tier'] == 'U13T1S')
                 ]
 
             if (self.__u12t1s and curr_tier.startswith('U12T1S')):
                 related_events = df_info[
-                    [(df_info['Tier'].str.startswith('U12T1')) &
-                    ~(df_info['Tier'] == 'U12T1S')]
+                    (df_info['Tier'].str.startswith('U12T1')) &
+                    ~(df_info['Tier'] == 'U12T1S')
                 ]
 
             if related_events is None:

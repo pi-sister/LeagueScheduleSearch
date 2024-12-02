@@ -409,7 +409,7 @@ class _PrivateParser:
                                 'Pair_with': [],
                                 'Preference': [],
                                 'Corresp_game': 'CMSAU12T1',
-                                'Part_assign': 'TU1800'}
+                                'Part_assign': 'TU18:00'}
                 special_practices.append(U12_practice)
             elif event['League'] == 'CMSA' and event['Tier'] == 'U13T1':
                 U13_practice = {'League':'CMSA',
