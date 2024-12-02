@@ -1,0 +1,27 @@
+Name:
+Test_Partial_Assignment
+
+Game slots:
+MO, 8:00, 1, 1
+TU, 10:00, 1, 1
+
+Practice slots:
+
+
+Games:
+CMSA U12 DIV 01
+CMSA U15 DIV 01
+
+Practices:
+
+Not compatible:
+
+Unwanted:
+
+Preferences:
+
+Pair:
+
+Partial assignments:
+
+
