@@ -17,6 +17,14 @@ Practices:
 CMSA U12 PRC 01
 CMSA U15 PRC 01
 
+Not compatible:
+
+Unwanted:
+
+Preferences:
+
+Pair:
+
 Partial assignments:
 CMSA U12 DIV 01, MO, 8:00
 CMSA U15 DIV 01, TU, 10:00
