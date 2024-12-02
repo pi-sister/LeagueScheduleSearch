@@ -28,3 +28,4 @@ FR, 9:00, CMSA U15 PRC 01, 5
 Partial assignments:
 CMSA U12 PRC 01, FR, 9:00
 CMSA U12 DIV 01, MO, 8:00
+
