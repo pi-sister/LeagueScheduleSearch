@@ -61,7 +61,18 @@ class Schedule:
         self.assigned = []
         self.gslots = env.game_slots.copy()
         self.pslots = env.practice_slots.copy()
-        
+    
+    def __lt__(self, other): # added this to solve the [can't compare '<' for the heap cuz Schedule is not a typical data structure] error 
+        # Compare based on the eval attribute
+        if isinstance(other, Schedule):
+            return self.eval < other.eval
+    
+    def __getitem__(self, index): # Added this to solve the ['Schedule' object is not subscriptable] error
+        return self.assignments[index]
+    
+    def __len__(self): # added this to attempt to solve the [no len() function for Schedule] error but it leads to more errors so :')
+        return len(self.assignments)
+    
     def get_Starting(self):
         return self.assignments.to_list()
         
@@ -110,6 +121,7 @@ class Schedule:
         sdiff *= env.w_secdiff
         
         self.eval = min + pref + pair + sdiff
+        return self.eval
         
     def min_filled(self, slots, penalty: int, verbose = 0) -> int:
         """
@@ -252,7 +264,7 @@ class Schedule:
                 # If list isn't empty, iterate through each pair
                 if isinstance(row['Pair_with'], list):
                     for pair in row['Pair_with']:
-                        if df.at(pair, 'Assigned') != row['Assigned']:
+                        if df.loc[pair]['Assigned']!= row['Assigned']:
                             count += 1
                 return count
             
@@ -324,8 +336,8 @@ class Schedule:
         # This needs to be fixed - separate merges for game and practice slots
         df = pd.concat([gdf, pdf])
 
-        print('***Testing df****')
-        print(df.columns)
+        # print('***Testing df****')
+        # print(df.columns)
 
         # Filter rows where 'Assigned' is not empty
         filterRows = df[df['Assigned'] != ""]

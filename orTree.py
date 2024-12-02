@@ -226,7 +226,7 @@ class OrTreeScheduler:
         for leaf in leaves:
             num, state = leaf
             schedule, sol_entry = state
-            if self.tempA and (index < len(self.tempA)) and (schedule[index] == self.tempA[index]):
+            if self.tempA and (index < len(self.tempA[index])) and (schedule[index] == self.tempA[index]):
                 choices.append(leaf)
             elif self.tempB and (index < len(self.tempB)) and (schedule[index] == self.tempB[index]):
                 choices.append(leaf)
