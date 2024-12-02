@@ -40,14 +40,19 @@ class ScheduleProcessor:
         """
         if len(self.heap) <= 4:
             self.fwert(0)  # add new random schedule
+            print(self.heap)
+
         elif len(self.heap) > limitOfSchedules:
             self.fwert(1)  # Deletion operation
+            print(self.heap)
+
         else:
             newTuple = self.f_select(self.heap)
             # new schedule from mutation or crossover   
             if newTuple != 0:
                 heappush(self.heap, newTuple)
             # if the generated tuple is new add it to the heap
+                print(self.heap)
 
 
 
@@ -66,11 +71,13 @@ class ScheduleProcessor:
                 # generate a random new schedule
                 newSchedule = self.scheduler.generate_schedule()
                 # Get the value of it from set_Eval
-                fitness = newSchedule.set_Eval1()
+                fitness = newSchedule.set_Eval()
+                if newSchedule.eval is None:  # Adjust this to the actual attribute name
+                    newSchedule.eval = fitness
+
                 # Add the new schedule to the heap.
                 # this is a max heap for effeciency so invert the value
                 heappush(self.heap, (-fitness, newSchedule))
-
                 
                 
             case 1:  
@@ -125,7 +132,7 @@ class ScheduleProcessor:
         elif transition == 'Crossover':
             # select two schedules for crossover based on the calculated probabilities
             selected_schedules = random.choices(schedules, weights=normalized_probabilities, k=2)
-            schedule = self.scheduler.generate_schedule(selected_schedules[0], selected_schedule[1])
+            schedule = self.scheduler.generate_schedule(selected_schedules[0], selected_schedules[1])
        
         # we dont want the same schedules in the heap
         if (schedule not in schedules):
@@ -154,14 +161,14 @@ class ScheduleProcessor:
 
 
 
-# Example usage
-if __name__ == "__main__":
-    # Create a ScheduleProcessor instance
-    processor = ScheduleProcessor()
+# # Example usage
+# if __name__ == "__main__":
+#     # Create a ScheduleProcessor instance
+#     processor = ScheduleProcessor()
     
-    # Exampel Maximum number of schedules allowed in the heap
-    limitOfSchedules = 30
+#     # Exampel Maximum number of schedules allowed in the heap
+#     limitOfSchedules = 30
     
-    # Process schedules
-    processor.processSchedules(limitOfSchedules)
+#     # Process schedules
+#     processor.processSchedules(limitOfSchedules)
 
