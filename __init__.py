@@ -11,12 +11,12 @@ if __name__ == "__main__":
     sched = Schedule(env)
     
     constraints = Constr(env)
-    # scheduler = OrTreeScheduler(constraints, env)
-    # processor = search_process.ScheduleProcessor(scheduler)
+    scheduler = OrTreeScheduler(constraints, env)
+    processor = search_process.ScheduleProcessor(scheduler)
+
+    schedule = processor.processSchedules(100,10)
     
-    # schedule = processor.processSchedules(100,10)
-    
-    # print(schedule)
+    print(schedule)
     
     
     

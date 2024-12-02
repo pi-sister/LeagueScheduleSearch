@@ -1,0 +1,35 @@
+Name:
+Test_Unwanted_Slots
+
+Game slots:
+MO, 8:00, 6, 3
+TU, 10:00, 6, 3
+
+Practice slots:
+FR, 9:00, 6, 3
+TU, 14:00, 6, 3
+
+Games:
+CMSA U14 DIV 01		
+CMSA U15 DIV 01		
+
+Practices:
+CMSA U14 PRC 01
+CMSA U15 PRC 01
+
+Not compatible:
+
+Unwanted:
+CMSA U14 DIV 01, MO, 8:00
+CMSA U15 DIV 01, TU, 10:00
+CMSA U14 PRC 01, TU, 14:00
+CMSA U15 PRC 01, FR, 9:00
+
+Preferences:
+
+Pair:
+
+Partial assignments:
+
+
+

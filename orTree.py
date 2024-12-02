@@ -69,13 +69,14 @@ class OrTreeScheduler:
                 env (dictionary): contains all the necessary information to complete orTree (particularly
                 for the constr function)
         """
+
         # populate local variables
         self.game_slots = env.game_slots
         self.practice_slots = env.practice_slots
         # Filter the events DataFrame to include only games
         self.games = env.events[env.events['Type']=='G']
-        print("\nEvents\n", env.events)
-        print("\ngames\n ", self.games)
+        # print("\nEvents\n", env.events)
+        # print("\ngames\n ", self.games)
         self.constraints = constraints
         self.env = env
         self.length = env.event_length()
@@ -225,7 +226,7 @@ class OrTreeScheduler:
         for leaf in leaves:
             num, state = leaf
             schedule, sol_entry = state
-            if self.tempA and (index < len(self.tempA)) and (schedule[index] == self.tempA[index]):
+            if self.tempA and (index < len(self.tempA[index])) and (schedule[index] == self.tempA[index]):
                 choices.append(leaf)
             elif self.tempB and (index < len(self.tempB)) and (schedule[index] == self.tempB[index]):
                 choices.append(leaf)
@@ -253,42 +254,41 @@ class OrTreeScheduler:
             Parameters:
                 schedule (list): partially or fully defined schedule
 
-            Ok so I need to take account of
-            DIV9
         """
         tempSched = schedule.Schedule.list_to_schedule(sched_list, self.env)
-        # return tempSched.check_constraints()
-        self.constraints.max_exceeded_reset()
+  
+        self.constraints.reset_slots()
 
-        for slot_counter in range(self.length):
-            if sched_list[slot_counter] == "*":
-                break
+        for _, event_details in tempSched:
+            if event_details["Assigned"] == "*":
+                continue
 
-            if slot_counter < len(self.games):
-                #print(sched_list)
-                if not self.constraints.max_exceeded(sched_list[slot_counter], "G"):
+            if not tempSched.max_exceeded(event_details["Assigned"], event_details["Type"]):
+                return False
+
+            if (event_details["Assigned"] != event_details["Part_assign"]) and (event_details["Part_assign"] != "*"):
+                return False
+            
+            if event_details["Assigned"] in event_details['Unwanted']:
+                return False
+
+            if not self.constraints.incompatible(tempSched.get_Assignments(), event_details["Incompatible"], event_details["Type"], event_details["Assigned"]):
+                return False
+            
+            if not self.constraints.check_evening_div(event_details["Assigned"][2:], event_details["Div"]):
+                return False
+
+            if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"regcheck"):
+                return False
+
+            if self.constraints.special_events:
+                if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"specialcheck"):
                     return False
-            #    if not self.constraints.check_evening_div(slot_counter, schedule[slot_counter], "G"):
-            #        return False
-            # else:
-            #     if not self.constraints.max_exceeded(schedule[slot_counter], "P"):
-            #         return False
-            #     if not self.constraints.check_evening_div(slot_counter, schedule[slot_counter], "P"):
-            #         return False
                 
-            # if not self.constraints.incompatible(slot_counter, schedule):
-            #     return False
-            
-            # if slot_counter > self.games:
-            #     if not self.constraints.check_assign(slot_counter, schedule):
-            #         return False
-                
-            # if not self.constraints.check_unwanted(slot_counter, schedule[slot_counter]):
-            #     return False
-            
-            # if not self.constraints.check_partassign(slot_counter, schedule[slot_counter]):
-            #     return False
-            
+            if event_details["Type"] == "P":
+                if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"specialcheck"):
+                    return False
+
         return True
 
 
@@ -382,25 +382,35 @@ class OrTreeScheduler:
             sched_list = self.search(pr0)
 
         # return the found schedule
+        print(f'Final Sched: {sched_list}')
         return schedule.Schedule.list_to_schedule(sched_list, self.env)
 
 
 if __name__ == "__main__":
     # Load CSV with the first column as the index
-    env = env('Jamie.txt', [1,0,1,0,10,10,10,10], verbose = 1)
+    # env = env('Jamie copy.txt', [1,0,1,0,10,10,10,10], verbose = 1)
+    env = env('example.txt', [1,0,1,0,10,10,10,10], verbose = 1)
+
+    # print(f'Preassignments: {env.preassigned_slots}')
+    print(f'Events:\n {env.events.columns}')
+    print(f'Practiceslots:\n {env.practice_slots}')
+    print(f'Gameslots:\n {env.game_slots}')
 
     constraints = Constr(env)
 
     scheduler = OrTreeScheduler(constraints, env)
 
-    schedule1 = scheduler.generate_schedule().assigned
+    # schedule1 = scheduler.generate_schedule().assigned
+    schedule1 = scheduler.generate_schedule()
     print("schedule 1", schedule1)
 
     #schedule2 = scheduler.generate_schedule(schedule1).assigned
     #print("schedule 2", schedule2)
 
-    schedule3 = scheduler.generate_schedule().assigned
-    print("schedule 3", schedule3)
+    # schedule3 = scheduler.generate_schedule().assigned
+    # schedule3 = scheduler.generate_schedule()
+    # print("schedule 3", schedule3)
 
-    schedule4 = scheduler.generate_schedule(schedule1, schedule3).assigned
-    print("schedule 4", schedule4)
+    # schedule4 = scheduler.generate_schedule(schedule1, schedule3).assigned
+    # schedule4 = scheduler.generate_schedule(schedule1, schedule3)
+    # print("schedule 4", schedule4)
