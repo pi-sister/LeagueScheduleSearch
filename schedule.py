@@ -59,10 +59,54 @@ class Schedule:
         self.event_list = self.events.index.tolist()
         self.assignments = self.events['Part_assign']
         self.assigned = []
+
         self.gslots = env.game_slots.copy()
+        self.gslots['Max'] = pd.to_numeric(self.gslots['Max'])
+
         self.pslots = env.practice_slots.copy()
-        
+        self.pslots['Max'] = pd.to_numeric(self.pslots['Max'])
+
+    def __lt__(self, other):
+        # Assuming you want to compare based on the `eval` attribute
+        if isinstance(other, Schedule):
+            return self.eval < other.eval
+        return NotImplemented
+    
+    def __len__(self):
+        """
+        Method obtain the number of events
+        """
+        return len(self.events.index)
+
+    def __iter__(self):
+        """
+        Method to iterate through schedule events
+        """
+        return self.events.iterrows()
+    
+    def __getitem__(self, index):
+        """
+        Method to obtain assigned slot with an index
+        """
+        return self.events.iloc[index]['Assigned']
+    
+    def __str__(self):
+        """
+        Method changed schedule to String format (for printing purposes.)
+        """
+        string = "(" + str(self.assigned) + ", " + str(self.eval) + ")"
+        return string
+
+    def get_Assignments(self):
+        """
+        Method to obtain all current assignments
+        """
+        return self.events[['Assigned', 'Tier', 'Type']]
+
     def get_Starting(self):
+        """
+        Method to obtain the preassignments
+        """
         return self.assignments.to_list()
         
     def set_Eval(self, verbose = 0):
@@ -110,6 +154,7 @@ class Schedule:
         sdiff *= env.w_secdiff
         
         self.eval = min + pref + pair + sdiff
+        return self.eval
         
     def min_filled(self, slots, penalty: int, verbose = 0) -> int:
         """
@@ -252,7 +297,7 @@ class Schedule:
                 # If list isn't empty, iterate through each pair
                 if isinstance(row['Pair_with'], list):
                     for pair in row['Pair_with']:
-                        if df.at(pair, 'Assigned') != row['Assigned']:
+                        if df.loc[pair]['Assigned'] != row['Assigned']:
                             count += 1
                 return count
             
@@ -324,8 +369,8 @@ class Schedule:
         # This needs to be fixed - separate merges for game and practice slots
         df = pd.concat([gdf, pdf])
 
-        print('***Testing df****')
-        print(df.columns)
+        # print('***Testing df****')
+        # print(df.columns)
 
         # Filter rows where 'Assigned' is not empty
         filterRows = df[df['Assigned'] != ""]
@@ -548,12 +593,5 @@ class Schedule:
         sched = Schedule(env)
         sched.assign(lst)
         return sched
-    
 
-    def __str__(self):
-        """
-        Method changed schedule to String format (for printing purposes.)
-        """
-        string = "(" + str(self.assigned) + ", " + str(self.eval) + ")"
-        return string
         

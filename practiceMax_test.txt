@@ -1,0 +1,28 @@
+Name:
+practiceMax_Test
+
+Game slots:
+
+
+Practice slots:
+MO, 8:00, 1, 1
+TU, 10:00, 1, 1
+
+Games:
+
+
+Practices:
+CMSA U12 PRC 01
+CMSA U15 PRC 01
+
+Not compatible:
+
+Unwanted:
+
+Preferences:
+
+Pair:
+
+Partial assignments:
+
+
