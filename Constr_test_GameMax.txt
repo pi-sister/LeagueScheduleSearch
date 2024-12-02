@@ -1,9 +1,9 @@
 Name:
-Test_Partial_Assignment
+GameMax
 
 Game slots:
 MO, 8:00, 1, 1
-TU, 10:00, 1, 1
+TU, 8:00, 1, 1
 
 Practice slots:
 
