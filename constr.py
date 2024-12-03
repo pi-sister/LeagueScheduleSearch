@@ -68,8 +68,8 @@ class Constr:
         relevant_events = event_assignments.loc[incompatible_list, ['Assigned','Type']]
 
         # Already compared this incompatible list
-        if tuple(relevant_events) in self.incompatible_checker:
-            return True
+        # if tuple(relevant_events) in self.incompatible_checker:
+        #     return True
         
         self.incompatible_checker.add(tuple(relevant_events))
 
@@ -256,7 +256,7 @@ class Constr:
         Checks if the event is in division 9, and if so if it was assigned to
         and evening slot
         """
-        if division != '09':
+        if division.startswith('9'):
             return True
         
         event_time = datetime.strptime(time_string, "%H:%M").time()

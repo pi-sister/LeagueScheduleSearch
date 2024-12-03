@@ -114,9 +114,12 @@ class ScheduleProcessor:
         
         # Calculate the total fitness of all schedules in the current state
         total_fitness = sum(fitness for fitness in fitnesses)
-    
+        if total_fitness == 0:
+            total_fitness = 1        
+        
         # Calculate the normalized probability for each schedule
         probabilities = [1 - (fitness / total_fitness) for fitness in fitnesses]
+        
     
         # Normalize the probabilities so they sum up to 1
         total_prob = sum(probabilities)
