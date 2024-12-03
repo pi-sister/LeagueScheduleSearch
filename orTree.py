@@ -260,7 +260,7 @@ class OrTreeScheduler:
   
         self.constraints.reset_slots()
 
-        for _, event_details in tempSched:
+        for event_id, event_details in tempSched:
             if event_details["Assigned"] == "*":
                 continue
 
@@ -276,7 +276,7 @@ class OrTreeScheduler:
                 print("Failed Unwanted")
                 return False
 
-            if not self.constraints.incompatible(tempSched.get_Assignments(), event_details["Incompatible"], event_details["Type"], event_details["Assigned"]):
+            if not self.constraints.incompatible(tempSched.get_Assignments(), event_details["Incompatible"], event_details["Type"], event_details["Assigned"], event_id):
                 print("Failed Incompatible")
                 return False
             

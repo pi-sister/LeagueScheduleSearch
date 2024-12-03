@@ -57,7 +57,7 @@ class Constr:
         self.incompatible_checker = set()
     
     
-    def incompatible(self, event_assignments, incompatible_list, event_type, event_time):
+    def incompatible(self, event_assignments, incompatible_list, event_type, event_time, event_id):
         """
         Takes the incompatible list from an event, if there is one, and checks if there are overlaps
         in the scheduled times
@@ -68,10 +68,11 @@ class Constr:
         relevant_events = event_assignments.loc[incompatible_list, ['Assigned','Type']]
 
         # Already compared this incompatible list
-        # if tuple(relevant_events) in self.incompatible_checker:
-        #     return True
+        if event_id in self.incompatible_checker:
+            return True
         
-        self.incompatible_checker.add(tuple(relevant_events))
+        for seen_ids in self.incompatible_checker:
+            self.incompatible_checker.add(seen_ids)
 
         return self.__check_time_overlap(event_time, event_type, relevant_events)
         
