@@ -259,6 +259,6 @@ class Constr:
         if division.startswith('9'):
             return True
         event_time = datetime.strptime(time_string, "%H:%M").time()
-        return self.evening <= event_time
+        return self.evening >= event_time
 
 
