@@ -172,7 +172,8 @@ class Schedule:
         
         def min_penalty(row):
             return penalty * max(0, int(row['Min']) - int(row['count']))
-        
+
+        print(f'Slots in min: {slots}')
         slots['min_penalty'] = slots.apply(min_penalty, axis = 1)
         if verbose:
             print(f'\nMinimum Penalty: {slots["min_penalty"].sum()}\n')

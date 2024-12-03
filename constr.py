@@ -123,7 +123,17 @@ class Constr:
             return self.__check_time_overlap(curr_time, "P", related_events)
 
         if mode == "pcheck":
-            related_event = df_info.loc[[corresponding_game]]
+            if isinstance(corresponding_game, list):
+
+                related_event = pd.concat([df_info.loc[[game]] for game in corresponding_game])
+
+            elif corresponding_game in df_info.index:
+                related_event = df_info.loc[[corresponding_game]]
+            else:
+                related_event = df_info[
+                    (df_info.index.str.startswith(corresponding_game))
+                ]
+
 
             return self.__check_time_overlap(curr_time, "P", related_event)
     

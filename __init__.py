@@ -8,7 +8,8 @@ import timeit
 if __name__ == "__main__":
     # wminfilled wpref wpair wsecdiff pengamemin penpracticemin pennotpaired pensection 
     # env = Environment('softConstraintsWOComments.txt', [1,1,1,1,7,8,5,10], verbose = 1)
-    env = Environment('CPSC433F24-LargeInput1.txt', [1,1,1,1,7,8,5,10], verbose = 1)
+    env = Environment('CPSC433F24-LargeInput1.txt', [1,1,1,1,7,8,5,10], verbose = 1) 
+    # env = Environment('Constr_test_Unwanted.txt', [1,1,1,1,7,8,5,10], verbose = 1) 
 
     sched = Schedule(env)
     
