@@ -67,7 +67,6 @@ class Schedule:
         self.pslots['Max'] = pd.to_numeric(self.pslots['Max'])
 
     def __lt__(self, other):
-        # Assuming you want to compare based on the `eval` attribute
         if isinstance(other, Schedule):
             return self.eval < other.eval
         return NotImplemented
