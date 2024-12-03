@@ -85,7 +85,6 @@ class Environment:
         - The file content is split into sections and processed accordingly.
         - Game slots, practice slots, games, and practices are processed and combined into a DataFrame with additional properties.
         """
-        
 
         if file_name is None: # If no file is given, ask for it
             file_name = input('File')
@@ -246,6 +245,9 @@ class _PrivateParser:
         df = pd.DataFrame(slots, columns=columns, index=indices)
         df['Invalid_Assign'] = np.empty((len(df), 0)).tolist()
         df['Type'] = event_type
+        
+        df['Max'] = df['Max'].astype(int)
+        df['Min'] = df['Min'].astype(int)
         
         if 'TU11:00' in df.index:
             df = df.drop('TU11:00')
