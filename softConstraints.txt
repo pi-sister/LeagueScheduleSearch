@@ -1,0 +1,68 @@
+Name:
+softConstraints.txt
+
+Game slots:
+MO, 8:00, 1, 0 #testing game max (assign two games here and get 1 penatly)
+MO, 9:00, 3, 1
+TU, 12:30, 3, 2
+FR, 8:00, 2, 1
+
+Practice slots:
+MO, 8:00, 5, 3
+MO, 10:30, 4, 2
+TU, 9:00, 3, 2
+TU, 10:00, 1, 0 # testing practice max (assign two practices here and get 1 penatly)
+FR, 9:00, 4, 3
+FR, 10:00, 2, 1
+
+Games:
+CMSA U12T1 DIV 01 # testing game max penalty --
+CMSA U12T1 DIV 02 # testing 1 perferecnce --
+CMSA U14T3 DIV 01 # testing game max penalty --
+CMSA U15T3 DIV 01 # testing pairs --
+CUSA O20 DIV 01 # testing pairs --
+CMSA U12T2 DIV 01 # testing the same division --
+CMSA U12T2 DIV 02 # testing the same division --
+
+Practices:
+CMSA U12T1 DIV 01 PRC 01 # testing prac max penalty --
+CMSA U14T3 DIV 01 PRC 02 # testing prac max penalty --
+CMSA U15T3 DIV 01 PRC 01 # testing pairs --
+CUSA O20 DIV 01 PRC 01 # testing multiple preferences --
+CUSA O18 DIV 02 PRC 01 # testing pairs --
+
+Not compatible:
+CMSA U12T1 DIV 01 PRC 01, CUSA O18 DIV 02 PRC 01 # doesn't rlly matter
+
+Unwanted:
+CMSA U12T1 DIV 01, FR, 8:00 # doesn't rlly matter
+
+Preferences:
+MO, 11:00, CMSA U12T1 DIV 02, 8 # testing 1 preference
+MO, 10:30, CUSA O20 DIV 01 PRC 01, 7 # testing multiple preferences
+TU, 9:00, CUSA O20 DIV 01 PRC 01, 3 # testing multiple preferences
+
+Pair:
+CMSA U15T3 DIV 01, CUSA O20 DIV 01 # testing pairs No.1
+CMSA U15T3 DIV 01 PRC 01, CUSA O18 DIV 02 PRC 01 # testing pairs No.2
+
+Partial assignments:
+CMSA U12T1 DIV 01, MO, 8:00
+CMSA U14T3 DIV 01, MO, 8:00 # gives us 7 penatly 
+
+CMSA U12T1 DIV 01 PRC 01, TU, 10:00
+CMSA U14T3 DIV 01 PRC 02, TU, 10:00 # gives us 8 penalty
+
+CMSA U12T1 DIV 02, MO, 9:00 # gives us a penatly of 8
+CUSA O20 DIV 01 PRC 01, FR, 9:00 # gives us a penalty of 10
+
+CMSA U15T3 DIV 01, FR, 8:00 # testing pairs No.1, should add 5 penalty
+CUSA O20 DIV 01, TU, 12:30 # testing pairs No.1
+
+CMSA U15T3 DIV 01 PRC 01, FR, 10:00 # testing pairs No.2, should add 5 penalty
+CUSA O18 DIV 02 PRC 01, TU, 9:00 # testing pairs No.2
+
+CMSA U12T2 DIV 01, TU, 12:30 # testing the same division, should add 10 to the penatly
+CMSA U12T2 DIV 02, TU, 12:30 # testing the same division
+
+#total penalty should be 53
