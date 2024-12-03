@@ -39,7 +39,11 @@ if __name__ == "__main__":
     
     # sched.assign(["MO8:00","MO8:00","MO9:00","MO8:00","MO8:00","MO8:00","MO8:00","MO8:00"], True)
     # sched.assign([])
+
     #assign_time = timeit.timeit(lambda: sched.assign_and_eval(["MO8:00","MO8:00","MO9:00","MO9:00","MO8:00","MO8:00","MO8:00","MO8:00"], verbose = 1), number=1)
+
+    # assign_time = timeit.timeit(lambda: sched.assign_and_eval(["MO8:00","MO8:00","TU10:00","TU10:00","MO9:00","FR9:00","FR8:00","TU12:30", "FR10:00", "TU9:00", "TU12:30", "TU12:30", "TU12:30"], verbose = 1), number=1)
+
     # assign2_time = timeit.timeit(lambda: sched.assign2_and_eval(["MO8:00","MO8:00","MO9:00","MO9:00","MO8:00","MO8:00","MO8:00","MO8:00"], True), number=1)
 
     
