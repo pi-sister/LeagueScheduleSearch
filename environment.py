@@ -380,7 +380,17 @@ class _PrivateParser:
                     print(f'Part Assign entry error: {team} is not in table')
         events['Part_assign'] = events['Part_assign'].astype(str)
 
-
+        incompatible = []
+        for incomp in split_data[6].split('\n'):
+            incomp = incomp.replace(' ','')
+            if len(incomp) > 0:
+                event1, event2 = incomp.strip().split(',')
+                if event1 in events.index and event2 in events.index:
+                    events.at[event1, 'Incompatible'].append(event2)
+                    events.at[event2, 'Incompatible'].append(event1)
+                else:
+                    print(f'Incompatible entry error: {event1} or {event2} is not in table')
+        events['Incompatible'] = events['Incompatible'].apply(lambda x: list(set(x)))
         
         # Do we want to add the name of each team's game to the practice?
         def related_games(event):
