@@ -385,6 +385,10 @@ class OrTreeScheduler:
         pr0 = self.starter_slots
 
         if (tempA or tempB) and not (tempA and tempB):
+            print("TEMPA AND B")
+            print(tempA)
+            print(tempB)
+
             self.randomNumbers = list(range(self.length))
             sched_list = self.mutate(pr0) 
         else:
