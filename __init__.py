@@ -6,7 +6,7 @@ import search_process
 import timeit
 
 if __name__ == "__main__":
-    env = Environment('minnumber.txt', [0,0,1,0,100,100,11,0], verbose = 1)
+    env = Environment('hc12.txt', [0,0,0,1,100,100,0,10], verbose = 1)
     sched = Schedule(env)
     
     constraints = Constr(env)
