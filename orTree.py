@@ -395,24 +395,24 @@ class OrTreeScheduler:
         return schedule.Schedule.list_to_schedule(sched_list, self.env)
 
 
-if __name__ == "__main__":
-    # Load CSV with the first column as the index
-    # env = env('Jamie copy.txt', [1,0,1,0,10,10,10,10], verbose = 1)
-    # env = env('softConstraintsWOComments.txt', [1,0,1,0,10,10,10,10], verbose = 1)
-    env = env('example.txt', [1,0,1,0,10,10,10,10], verbose = 1)
+# if __name__ == "__main__":
+#     # Load CSV with the first column as the index
+#     # env = env('Jamie copy.txt', [1,0,1,0,10,10,10,10], verbose = 1)
+#     env = env('example.txt', [1,0,1,0,10,10,10,10], verbose = 1)
 
-    # print(f'Preassignments: {env.preassigned_slots}')
-    print(f'Events:\n {env.events.columns}')
-    print(f'Practiceslots:\n {env.practice_slots}')
-    print(f'Gameslots:\n {env.game_slots}')
 
-    constraints = Constr(env)
+#     # print(f'Preassignments: {env.preassigned_slots}')
+#     print(f'Events:\n {env.events.columns}')
+#     print(f'Practiceslots:\n {env.practice_slots}')
+#     print(f'Gameslots:\n {env.game_slots}')
 
-    scheduler = OrTreeScheduler(constraints, env)
+#     constraints = Constr(env)
 
-    # schedule1 = scheduler.generate_schedule().assigned
-    schedule1 = scheduler.generate_schedule()
-    print("schedule 1", schedule1)
+#     scheduler = OrTreeScheduler(constraints, env)
+
+#     # schedule1 = scheduler.generate_schedule().assigned
+#     schedule1 = scheduler.generate_schedule()
+#     print("schedule 1", schedule1)
 
     #schedule2 = scheduler.generate_schedule(schedule1).assigned
     #print("schedule 2", schedule2)

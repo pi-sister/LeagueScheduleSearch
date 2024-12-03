@@ -1,0 +1,31 @@
+Name:
+Test_overlap
+
+Game slots:
+MO, 9:00, 5, 1
+TU, 9:00, 5, 1
+
+
+Practice slots:
+MO, 9:00, 5, 1
+TU, 10:00, 5, 1
+
+Games:
+CMSA U14T1 DIV 01
+CMSA U15T1 DIV 01
+
+Practices:
+CMSA U14T1 PRC 01
+CMSA U15T1 PRC 01
+
+Not compatible:
+
+Unwanted:
+
+Preferences:
+
+Pair:
+
+Partial assignments:
+CMSA U15T1 PRC 01, MO, 9:00
+CMSA U14T1 DIV 01, TU, 9:00

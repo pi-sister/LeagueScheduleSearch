@@ -40,11 +40,11 @@ class ScheduleProcessor:
         """
         if len(self.heap) <= 4:
             self.fwert(0)  # add new random schedule
-            print(self.heap)
+            # print(self.heap)
 
         elif len(self.heap) > limitOfSchedules:
             self.fwert(1)  # Deletion operation
-            print(self.heap)
+            # print(self.heap)
 
         else:
             newTuple = self.f_select(self.heap)
@@ -52,7 +52,7 @@ class ScheduleProcessor:
             if newTuple != 0:
                 heappush(self.heap, newTuple)
             # if the generated tuple is new add it to the heap
-                print(self.heap)
+                # print(self.heap)
 
 
 
