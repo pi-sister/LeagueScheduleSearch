@@ -256,7 +256,7 @@ class Constr:
         Checks if the event is in division 9, and if so if it was assigned to
         and evening slot
         """
-        if division != '09':
+        if division.startswith('9'):
             return True
         
         event_time = datetime.strptime(time_string, "%H:%M").time()
