@@ -127,7 +127,7 @@ class ScheduleProcessor:
         normalized_probabilities = [prob / total_prob for prob in probabilities]
     
         # Choose between Mutation and Crossover with equal probability
-        transition = random.choices(['Mutation', 'Crossover'], weights=[0.8, 0.2])[0]
+        transition = random.choices(['Mutation', 'Crossover'], weights=[0.5, 0.5])[0]
     
 
         if transition == 'Mutation':
@@ -139,7 +139,7 @@ class ScheduleProcessor:
             # select two schedules for crossover based on the calculated probabilities
             selected_schedules = random.choices(schedules, weights=normalized_probabilities, k=2)
             schedule = self.scheduler.generate_schedule(selected_schedules[0], selected_schedules[1])
-
+            
         if not schedule:
             return 0
         # we dont want the same schedules in the heap
@@ -159,19 +159,10 @@ class ScheduleProcessor:
         returns:
             a good enough answer, and the best one we have
         """
-        best = 10000  # Set initial best to a very high value
-        best_index = 0
+        
         for i in range(iterNum):
             self.chooseAction(limitOfSchedules)
-            # Use heappop/heapq.nlargest to extract max properly
-            current_best = max(self.heap, key=lambda x: x[0])
-            if -current_best[0] < best:  # Compare with the current best fitness (negative because max-heap)
-                best = -current_best[0]
-                best_index = i
-        print("best_index", best_index)
-        # Return the schedule corresponding to the best fitness
-        return max(self.heap, key=lambda x: x[0])[1]
-
+        return max(self.heap)[1]
             
         
 
