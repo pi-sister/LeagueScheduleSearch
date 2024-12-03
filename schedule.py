@@ -169,12 +169,14 @@ class Schedule:
             int: The total minimum penalty for unfilled slots.
         """
         self.update_counters() # Update the counters for the slots
+        if slots.empty:
+            return 0
         
         def min_penalty(row):
-            return penalty * max(0, int(row['Min']) - int(row['count']))
+            difference = int(row['Min']) - int(row['count'])
+            return max(0,  difference)
         
-        slots['min_penalty'] = slots.apply(min_penalty, axis = 1).reset_index().iloc[:, 1]
-        # slots['min_penalty'] = slots.apply(min_penalty, axis = 1)
+        slots['min_penalty'] = slots.apply(min_penalty, axis = 1)
         
         if verbose:
             print(f'\nMinimum Penalty: {slots["min_penalty"].sum()}\n')
