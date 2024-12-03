@@ -399,6 +399,9 @@ class OrTreeScheduler:
 
         # return the found schedule
         print(f'Final Sched: {sched_list}')
+        if tempA and not sched_list:
+            print("from mutation or crossover")
+            return None
         return schedule.Schedule.list_to_schedule(sched_list, self.env)
 
 

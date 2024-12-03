@@ -123,9 +123,16 @@ class Constr:
             return self.__check_time_overlap(curr_time, "P", related_events)
 
         if mode == "pcheck":
-            related_event = df_info.loc[[corresponding_game]]
-
-            return self.__check_time_overlap(curr_time, "P", related_event)
+            if corresponding_game in df_info.index or ('Corresp_game' in df_info.columns and corresponding_game in df_info['Corresp_game'].values):
+                # If it exists, retrieve the related events
+                related_event = df_info.loc[
+                    (df_info.index.str.startswith(corresponding_game) | 
+                    df_info['Corresp_game'].fillna('').str.startswith(corresponding_game)) &
+                    (df_info['Type'] == 'G')  # Filter for rows where Type is 'G'
+                ]
+                # Perform the overlap check
+                return self.__check_time_overlap(curr_time, "P", related_event)
+            return True
     
     def __check_time_overlap(self, curr_time, event_type, corresponding_events):
         """

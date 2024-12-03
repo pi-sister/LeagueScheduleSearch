@@ -138,7 +138,9 @@ class ScheduleProcessor:
             # select two schedules for crossover based on the calculated probabilities
             selected_schedules = random.choices(schedules, weights=normalized_probabilities, k=2)
             schedule = self.scheduler.generate_schedule(selected_schedules[0], selected_schedules[1])
-       
+            
+        if not schedule:
+            return 0
         # we dont want the same schedules in the heap
         if (schedule not in schedules):
             return (-schedule.set_Eval(), schedule)
