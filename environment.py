@@ -246,6 +246,10 @@ class _PrivateParser:
         df = pd.DataFrame(slots, columns=columns, index=indices)
         df['Invalid_Assign'] = np.empty((len(df), 0)).tolist()
         df['Type'] = event_type
+        
+        if 'TU11:00' in df.index:
+            df = df.drop('TU11:00')
+        
         if verbose:
             print(f'Processed {len(df)} {event_type} slots: \n {df}\n')
         return df

@@ -73,7 +73,7 @@ class Constr:
         
         self.incompatible_checker.add(tuple(relevant_events))
 
-        return self.__check_time_overlap(self, event_time, event_type, relevant_events)
+        return self.__check_time_overlap(event_time, event_type, relevant_events)
         
     def check_assign(self, df_info, curr_tier, curr_time, corresponding_game, mode):
         """

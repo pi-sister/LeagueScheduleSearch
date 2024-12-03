@@ -571,7 +571,7 @@ class Schedule:
             self.update_counters()
         else:
             print("Invalid Schedule")
-            exit() 
+            sys.exit() 
     def get_scheduled(self) -> pd.DataFrame:
         """
         Retrieve scheduled events.
