@@ -67,6 +67,7 @@ class Schedule:
         self.pslots['Max'] = pd.to_numeric(self.pslots['Max'])
 
     def __lt__(self, other):
+        #  Comparing based on the `eval` attribute
         if isinstance(other, Schedule):
             return self.eval < other.eval
         return NotImplemented
@@ -100,7 +101,7 @@ class Schedule:
         """
         Method to obtain all current assignments
         """
-        return self.events[['Assigned', 'Tier', 'Type']]
+        return self.events[['Assigned', 'League', 'Tier', 'Div','Type', 'Corresp_game']]
 
     def get_Starting(self):
         """
@@ -190,11 +191,14 @@ class Schedule:
         Returns:
             bool: True if the slot limit is not exceeded, False otherwise.
         """
-        
+ 
         if slot_type == 'G':
             return self.gslots.at[slot, 'count'] <= self.gslots.at[slot, 'Max']
         elif slot_type == 'P':
-            return self.pslots.at[slot, 'count'] <= self.pslots.at[slot, 'Max']
+            if slot in self.pslots.index:
+                return self.pslots.at[slot, 'count'] <= self.pslots.at[slot, 'Max']
+            
+            raise ValueError(f"Slot {slot} is not in practice slots")
         else:
             raise ValueError("Invalid slot type. Must be 'G' or 'P'.")
         
@@ -251,7 +255,7 @@ class Schedule:
         - If they do not match, it adds the associated value to the penalty.
         - The penalty for each row is stored in a new column 'pref_penalty'.
         - Finally, the function returns the sum of all penalties in the 'pref_penalty' column.
-        """
+        """    
         def pref_calc(row):
             if row['Preference'] == []:
                 return 0
@@ -298,8 +302,7 @@ class Schedule:
                     for pair in row['Pair_with']:
                         if df.loc[pair]['Assigned'] != row['Assigned']:
                             count += 1
-                return count
-            
+                return count/2
         # Apply the count_unpaired function to each row in the DataFrame
         df['not_paired'] = df.apply(count_unpaired, axis=1)
         count = df['not_paired'].sum()
