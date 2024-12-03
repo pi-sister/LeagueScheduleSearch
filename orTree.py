@@ -353,6 +353,8 @@ class OrTreeScheduler:
             prMut = None
             while not prMut:
                 # select our starting node so that we can start our search. (this is pretty much an initial fleaf selection)
+                if not self.fringe:
+                    break
                 selected = random.choice(self.fringe)
                 self.fringe.remove(selected)
                 num, state = selected
@@ -360,7 +362,8 @@ class OrTreeScheduler:
                 # we make sure that our mutated schedule is not going to end up being the same as our initial schedule.
                 if pr[rand] != self.tempA[rand]:
                     prMut = pr
-            schedule = self.search(prMut)
+            if prMut:
+                schedule = self.search(prMut)
         return schedule
 
 

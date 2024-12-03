@@ -73,7 +73,7 @@ class Constr:
         
         self.incompatible_checker.add(tuple(relevant_events))
 
-        return self.__check_time_overlap(self, event_time, event_type, relevant_events)
+        return self.__check_time_overlap(event_time, event_type, relevant_events)
         
     def check_assign(self, df_info, curr_tier, curr_time, corresponding_game, mode):
         """
@@ -256,11 +256,9 @@ class Constr:
         Checks if the event is in division 9, and if so if it was assigned to
         and evening slot
         """
-        if division != '09':
+        if not division.startswith('9'):
             return True
-        
         event_time = datetime.strptime(time_string, "%H:%M").time()
-
-        return self.evening >= event_time
+        return self.evening <= event_time
 
 
