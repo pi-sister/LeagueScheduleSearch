@@ -174,6 +174,8 @@ class Schedule:
             return penalty * max(0, int(row['Min']) - int(row['count']))
         
         slots['min_penalty'] = slots.apply(min_penalty, axis = 1).reset_index().iloc[:, 1]
+        # slots['min_penalty'] = slots.apply(min_penalty, axis = 1)
+        
         if verbose:
             print(f'\nMinimum Penalty: {slots["min_penalty"].sum()}\n')
         
@@ -197,9 +199,9 @@ class Schedule:
         elif slot_type == 'P':
             if slot in self.pslots.index:
                 return self.pslots.at[slot, 'count'] <= self.pslots.at[slot, 'Max']
-            else:
-                print("Invalid Schedule")
-                exit()
+            # else:
+            #     print("Invalid Schedule")
+            #     exit()
             #raise ValueError(f"Slot {slot} is not in practice slots")
             
         else:
