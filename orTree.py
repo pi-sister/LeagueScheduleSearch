@@ -4,6 +4,8 @@ import random
 import pandas as pd
 
 from constr import Constr
+from environment import Environment as env
+import schedule
 
 class OrTreeScheduler:
     """
@@ -18,9 +20,45 @@ class OrTreeScheduler:
 
     Contributors:
         [List your group members here, e.g., Name1, Name2, Name3, etc.]
+        
+    Attributes:
+        game_slots (list): List of abstracted game slots.
+        practice_slots (list): List of abstracted practice slots.
+        games (int): Number of games.
+        constraints (Constr): Constraints object to evaluate the schedule.
+        env (Environment): Environment object containing necessary information.
+        length (int): Length of the event.
+        fringe (list): List to maintain the fringe in a min heap.
+        starter_slots (list): List of preassigned slots. 
+        tempA (list): Template A for the schedule.
+        tempB (list): Template B for the schedule.
+        randomNumbers (list): List of random numbers for mutation.
+        
+    Methods:
+        __init__(constraints, env):
+            Initializes the OrTreeScheduler with the abstracted game slots and any necessary information found in the env variable.
+        altern(pr):
+            Generates new prs from the current pr passed in and puts all of the prs into the fringe, which is maintained in a min heap.
+        pushFringe(index, pr, mut=False):
+            Pushes to the fringe all possible state combinations. Used in part of altern function.
+        ftrans(state):
+            Transition function that selects an action to complete. Returns the changed state if it was changed, otherwise returns the state as it was before.
+        fleaf_base():
+            Base fleaf function that finds the highest index value of the next schedule to be scheduled and filters to choose between the deepest leaves.
+        fleaf_random(leaves):
+            Selects a random leaf out of the deepest leaves.
+        fleaf_template(leaves, index):
+            Follows 1 or 2 templates in the schedule and removes all other leaves that are not the same as the template(s).
+        constr(schedule):
+            Evaluates the constraints. Returns True if no constraints are violated, False otherwise.
+        search(pr0):
+            Main search algorithm of the OrTree. Takes the current state and returns a completed schedule, or an empty schedule if there are no solutions.
+        mutate(pr0):
+            Base mutation function that starts by randomly mutating 1 schedule and starting a search on it.
+        generate_schedule(tempA=[], tempB=[]):
+            Creates a schedule from the OrTree search algorithm with 0, 1, or 2 input templates. Defaults to an empty list, meaning no templates.
     """
-
-    def __init__(self, game_slots, practice_slots, games, practices, constraints, env):
+    def __init__(self, constraints, env):
         """
         Initializes the orTreeScheduler with the abstracted game slots and any necessary information found in the env
         variable. Put the contraint information in the env variable.
@@ -31,15 +69,20 @@ class OrTreeScheduler:
                 env (dictionary): contains all the necessary information to complete orTree (particularly
                 for the constr function)
         """
+
         # populate local variables
-        self.game_slots = game_slots
-        self.practice_slots = practice_slots
-        self.games = games
+        self.game_slots = env.game_slots
+        self.practice_slots = env.practice_slots
+        # Filter the events DataFrame to include only games
+        self.games = env.events[env.events['Type']=='G']
+        # print("\nEvents\n", env.events)
+        # print("\ngames\n ", self.games)
         self.constraints = constraints
         self.env = env
-        self.length = (self.games + practices)
+        self.length = env.event_length()
         self.fringe = []
-
+        self.starter_slots = env.preassigned_slots
+    # TODO: @Emily 
 
     def altern(self, pr):
         """
@@ -71,8 +114,8 @@ class OrTreeScheduler:
                 pr (list): the current schedule being modified
         """
         # Check if it's in the range for game slots
-        if index < self.games:
-            for game_slot in self.game_slots:
+        if index < len(self.games):
+            for game_slot in self.game_slots.index:
                 # Create a new schedule with this game slot
                 new_pr = pr[:index] + [game_slot] + pr[index+1:]
                 # Push into heap with the '*' count as priority
@@ -82,7 +125,7 @@ class OrTreeScheduler:
                     self.fringe.append((1, (new_pr,'?')))
         # Otherwise, it must be a practice slot
         else:
-            for practice_slot in self.practice_slots:
+            for practice_slot in self.practice_slots.index:
                 # Create a new schedule with this practice slot
                 new_pr = pr[:index] + [practice_slot] + pr[index+1:]
                 # Push into heap with the '*' count as priority
@@ -183,7 +226,7 @@ class OrTreeScheduler:
         for leaf in leaves:
             num, state = leaf
             schedule, sol_entry = state
-            if self.tempA and (index < len(self.tempA)) and (schedule[index] == self.tempA[index]):
+            if self.tempA and (index < len(self.tempA[index])) and (schedule[index] == self.tempA[index]):
                 choices.append(leaf)
             elif self.tempB and (index < len(self.tempB)) and (schedule[index] == self.tempB[index]):
                 choices.append(leaf)
@@ -204,47 +247,48 @@ class OrTreeScheduler:
 
 
 
-    def constr(self, schedule):
+    def constr(self, sched_list: list):
         """
         Function that evaluates the constraints. Returns True if no constraints are violated, False otherwise
 
             Parameters:
                 schedule (list): partially or fully defined schedule
 
-            Ok so I need to take account of
-            DIV9
         """
+        tempSched = schedule.Schedule.list_to_schedule(sched_list, self.env)
+  
+        self.constraints.reset_slots()
 
-        self.constraints.max_exceeded_reset()
+        for _, event_details in tempSched:
+            if event_details["Assigned"] == "*":
+                continue
 
-        for slot_counter in range(self.length):
-            if schedule[slot_counter] == "*":
-                break
+            if not tempSched.max_exceeded(event_details["Assigned"], event_details["Type"]):
+                return False
 
-            if slot_counter < self.games:
-                if not self.constraints.max_exceeded(schedule[slot_counter], "G"):
-                    return False
-                if not self.constraints.check_evening_div(slot_counter, schedule[slot_counter], "G"):
-                    return False
-            else:
-                if not self.constraints.max_exceeded(schedule[slot_counter], "P"):
-                    return False
-                if not self.constraints.check_evening_div(slot_counter, schedule[slot_counter], "P"):
+            if (event_details["Assigned"] != event_details["Part_assign"]) and (event_details["Part_assign"] != "*"):
+                return False
+            
+            if event_details["Assigned"] in event_details['Unwanted']:
+                return False
+
+            if not self.constraints.incompatible(tempSched.get_Assignments(), event_details["Incompatible"], event_details["Type"], event_details["Assigned"]):
+                return False
+            
+            if not self.constraints.check_evening_div(event_details["Assigned"][2:], event_details["Div"]):
+                return False
+
+            if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"regcheck"):
+                return False
+
+            if self.constraints.special_events:
+                if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"specialcheck"):
                     return False
                 
-            if not self.constraints.incompatible(slot_counter, schedule):
-                return False
-            
-            if slot_counter > self.games:
-                if not self.constraints.check_assign(slot_counter, schedule):
+            if event_details["Type"] == "P":
+                if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"specialcheck"):
                     return False
-                
-            if not self.constraints.check_unwanted(slot_counter, schedule[slot_counter]):
-                return False
-            
-            if not self.constraints.check_partassign(slot_counter, schedule[slot_counter]):
-                return False
-            
+
         return True
 
 
@@ -316,45 +360,57 @@ class OrTreeScheduler:
         creates a schedule from the orTree search algorithm with 0,1, or 2 input templates. This is included in the env variable
         and defaults to an empty list, meaning no templates. 
         0 templates = random orTree, 1 template = mutation orTree, 2 templates = crossover orTree
+        
+        Args:
+            tempA (list, optional): Template A for the schedule. Defaults to an empty list.
+            tempB (list, optional): Template B for the schedule. Defaults to an empty list.
+
+        Returns:
+            list: A valid schedule generated by the OrTree search algorithm.
         """
         self.tempA = tempA
         self.tempB = tempB
         self.fringe = []
 
         # create start_state, and set preassignments right away.
-        pr0 = ['*'] * self.length
+        pr0 = self.starter_slots
 
         if (tempA or tempB) and not (tempA and tempB):
             self.randomNumbers = list(range(self.length))
-            schedule = self.mutate(pr0)      
+            sched_list = self.mutate(pr0)      
         else:
-            schedule = self.search(pr0)
+            sched_list = self.search(pr0)
 
         # return the found schedule
-        return schedule
+        print(f'Final Sched: {sched_list}')
+        return schedule.Schedule.list_to_schedule(sched_list, self.env)
 
 
-if __name__ == "__main__":
-    # Load CSV with the first column as the index
-    df_gslots = pd.read_csv('test_game_slots.csv', index_col=0)
-    df_pslots = pd.read_csv('test_practice_slots.csv', index_col=0)
-    df_events = pd.read_csv('test_events.csv', index_col=0)
+# if __name__ == "__main__":
+#     # Load CSV with the first column as the index
+#     # env = env('Jamie copy.txt', [1,0,1,0,10,10,10,10], verbose = 1)
+#     env = env('example.txt', [1,0,1,0,10,10,10,10], verbose = 1)
 
-    game_slots = list(df_gslots.index)
-    practice_slots = list(df_pslots.index)
-    games = len(df_events[df_events.Type == 'G'].index)
-    practices = len(df_events[df_events.Type == 'P'].index)
-    env = None
+#     # print(f'Preassignments: {env.preassigned_slots}')
+#     print(f'Events:\n {env.events.columns}')
+#     print(f'Practiceslots:\n {env.practice_slots}')
+#     print(f'Gameslots:\n {env.game_slots}')
 
-    constraints = Constr(df_gslots, df_pslots, df_events)
+#     constraints = Constr(env)
 
-    scheduler = OrTreeScheduler(game_slots, practice_slots, games, practices, constraints, env)
+#     scheduler = OrTreeScheduler(constraints, env)
 
-    schedule1 = scheduler.generate_schedule()
-    print("schedule 1", schedule1)
+#     # schedule1 = scheduler.generate_schedule().assigned
+#     schedule1 = scheduler.generate_schedule()
+#     print("schedule 1", schedule1)
 
-    schedule3 = scheduler.generate_schedule()
-    print("schedule 3", schedule3)
+    #schedule2 = scheduler.generate_schedule(schedule1).assigned
+    #print("schedule 2", schedule2)
 
-    schedule4 = scheduler.generate_schedule(schedule1, schedule3)
-    print("schedule 4", schedule4)
+    # schedule3 = scheduler.generate_schedule().assigned
+    # schedule3 = scheduler.generate_schedule()
+    # print("schedule 3", schedule3)
+
+    # schedule4 = scheduler.generate_schedule(schedule1, schedule3).assigned
+    # schedule4 = scheduler.generate_schedule(schedule1, schedule3)
+    # print("schedule 4", schedule4)

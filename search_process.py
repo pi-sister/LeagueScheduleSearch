@@ -1,8 +1,9 @@
 
 # imports for heap
 from heapq import heapify, heappush, heappop, nlargest
-from main import set_Eval
+import schedule
 from orTree import OrTreeScheduler
+import random
 
 #note: the OrtreeScheduler needs to give me a schedule of type Schedule so 
 #that i can call set_Eval on it.
@@ -20,14 +21,14 @@ class ScheduleProcessor:
 
     """
 
-    def __init__(self, gameSlots, practiceSlots, env):
+    def __init__(self, scheduler):
         """
         Initializes the ScheduleProcessor with an empty heap.
         """
         # Create an empty heap for schedules
         self.heap = []
         heapify(self.heap)  # Convert the list into a valid heap structure
-        scheduler = OrTreeScheduler(gameSlots, practiceSlots, env) 
+        self.scheduler = scheduler
 
     def chooseAction(self, limitOfSchedules):
         """
@@ -38,15 +39,20 @@ class ScheduleProcessor:
 
         """
         if len(self.heap) <= 4:
-            fwert(0)  # add new random schedule
+            self.fwert(0)  # add new random schedule
+            # print(self.heap)
+
         elif len(self.heap) > limitOfSchedules:
-            fwert(1)  # Deletion operation
+            self.fwert(1)  # Deletion operation
+            # print(self.heap)
+
         else:
-            newTuple = f_select(self.heap)
+            newTuple = self.f_select(self.heap)
             # new schedule from mutation or crossover   
             if newTuple != 0:
                 heappush(self.heap, newTuple)
             # if the generated tuple is new add it to the heap
+                # print(self.heap)
 
 
 
@@ -63,13 +69,15 @@ class ScheduleProcessor:
         match num:
             case 0:  
                 # generate a random new schedule
-                newSchedule = scheduler.generate_schedule()
+                newSchedule = self.scheduler.generate_schedule()
                 # Get the value of it from set_Eval
                 fitness = newSchedule.set_Eval()
+                if newSchedule.eval is None:  # Adjust this to the actual attribute name
+                    newSchedule.eval = fitness
+
                 # Add the new schedule to the heap.
                 # this is a max heap for effeciency so invert the value
                 heappush(self.heap, (-fitness, newSchedule))
-
                 
                 
             case 1:  
@@ -84,7 +92,7 @@ class ScheduleProcessor:
         
 
 
-    def f_select(current_state):
+    def f_select(self, current_state):
         """
         f_select function to select a transition from the given state based on the probabilities.
     
@@ -119,12 +127,12 @@ class ScheduleProcessor:
         if transition == 'Mutation':
             # Select one schedule for mutation based on the calculated probabilities
             selected_schedule = random.choices(schedules, weights=normalized_probabilities, k=1)[0]
-            schedule = scheduler.generate_schedule(selected_schedule)
+            schedule = self.scheduler.generate_schedule(selected_schedule)
     
         elif transition == 'Crossover':
             # select two schedules for crossover based on the calculated probabilities
             selected_schedules = random.choices(schedules, weights=normalized_probabilities, k=2)
-            schedule = scheduler.generate_schedule(selected_schedules[0], selected_schedule[1])
+            schedule = self.scheduler.generate_schedule(selected_schedules[0], selected_schedules[1])
        
         # we dont want the same schedules in the heap
         if (schedule not in schedules):
@@ -145,7 +153,7 @@ class ScheduleProcessor:
         """
         
         for i in range(iterNum):
-            chooseAction(limitOfSchedules)
+            self.chooseAction(limitOfSchedules)
         return max(self.heap)[1]
             
         
@@ -153,14 +161,14 @@ class ScheduleProcessor:
 
 
 
-# Example usage
-if __name__ == "__main__":
-    # Create a ScheduleProcessor instance
-    processor = ScheduleProcessor()
+# # Example usage
+# if __name__ == "__main__":
+#     # Create a ScheduleProcessor instance
+#     processor = ScheduleProcessor()
     
-    # Exampel Maximum number of schedules allowed in the heap
-    limitOfSchedules = 30
+#     # Exampel Maximum number of schedules allowed in the heap
+#     limitOfSchedules = 30
     
-    # Process schedules
-    processor.processSchedules(limitOfSchedules)
+#     # Process schedules
+#     processor.processSchedules(limitOfSchedules)
 

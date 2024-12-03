@@ -1,0 +1,36 @@
+Name:
+Test_DIV9_evening_no_valid_answers
+
+Game slots:
+MO, 19:00, 3, 2
+TU, 09:00, 3, 2
+
+Practice slots:
+
+
+Games:
+CMSA U14T1 DIV 09
+CMSA U15T1 DIV 01
+
+Practices:
+
+
+Not compatible:
+CMSA U14T1 DIV 09, CMSA U15T1 DIV 01
+
+
+Unwanted:
+
+Preferences:
+
+Pair:
+
+Partial assignments:
+CMSA U15T1 DIV 01, MO, 19:00
+
+
+
+
+
+
+
