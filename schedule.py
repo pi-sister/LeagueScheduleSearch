@@ -563,9 +563,12 @@ class Schedule:
             None
         """
         self.assigned = slots
-        self.events['Assigned'] = self.assigned
-        self.update_counters()
-        
+        if self.assigned:
+            self.events['Assigned'] = self.assigned
+            self.update_counters()
+        else:
+            print("Invalid Schedule")
+            exit() 
     def get_scheduled(self) -> pd.DataFrame:
         """
         Retrieve scheduled events.

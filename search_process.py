@@ -71,6 +71,8 @@ class ScheduleProcessor:
                 # generate a random new schedule
                 newSchedule = self.scheduler.generate_schedule()
                 # Get the value of it from set_Eval
+                # if newSchedule == []:
+                #     return "failed hard constraints"
                 fitness = newSchedule.set_Eval()
                 if newSchedule.eval is None:  # Adjust this to the actual attribute name
                     newSchedule.eval = fitness

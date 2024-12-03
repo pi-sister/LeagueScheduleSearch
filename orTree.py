@@ -377,7 +377,7 @@ class OrTreeScheduler:
 
         if (tempA or tempB) and not (tempA and tempB):
             self.randomNumbers = list(range(self.length))
-            sched_list = self.mutate(pr0)      
+            sched_list = self.mutate(pr0) 
         else:
             sched_list = self.search(pr0)
 
