@@ -197,8 +197,11 @@ class Schedule:
         elif slot_type == 'P':
             if slot in self.pslots.index:
                 return self.pslots.at[slot, 'count'] <= self.pslots.at[slot, 'Max']
+            else:
+                print("Invalid Schedule")
+                exit()
+            #raise ValueError(f"Slot {slot} is not in practice slots")
             
-            raise ValueError(f"Slot {slot} is not in practice slots")
         else:
             raise ValueError("Invalid slot type. Must be 'G' or 'P'.")
         
@@ -522,6 +525,7 @@ class Schedule:
             #     print(f"{total_penalty = }")
 
         self.eval = total_penalty
+        return total_penalty
     
     def assign_and_eval(self, slots, verbose = 0):
         """
