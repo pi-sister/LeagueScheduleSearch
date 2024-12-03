@@ -70,7 +70,7 @@ class Constr:
         # Already compared this incompatible list
         # if tuple(relevant_events) in self.incompatible_checker:
         #     return True
-        
+
         self.incompatible_checker.add(tuple(relevant_events))
 
         return self.__check_time_overlap(event_time, event_type, relevant_events)
