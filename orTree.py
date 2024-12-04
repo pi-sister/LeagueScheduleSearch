@@ -94,8 +94,8 @@ class OrTreeScheduler:
         # what we want to do instead is assign a value based on the score of a game fulfilling certain hardconstraints
         # if it fulfills more hard constraints (meaning that it has more hard constraints), it will have a higher score
         # we can call a score function that does all the math
-        df_with_scores = self.score(self.events)
-        print(f"SCORES: {df_with_scores['Score']}")
+        self.df_with_scores = self.score(self.events)
+        print(f"SCORES: {self.df_with_scores['Score']}")
         
     # TODO: @Emily 
 
@@ -128,37 +128,85 @@ class OrTreeScheduler:
                 index (Int): the index in the schedule to schedule a slot into
                 pr (list): the current schedule being modified
         """
-        # Check if it's in the range for game slots
-        if index < len(self.games):
-            for game_slot in self.game_slots.index:
-                # Create a new schedule with this game slot
-                new_pr = pr[:index] + [game_slot] + pr[index+1:]
-                # Push into heap with the '*' count as priority
-                if not mut:
-                    self.fringe.append((-index, (new_pr,'?')))
-                else:
-                    self.fringe.append((1, (new_pr,'?')))
-        # Otherwise, it must be a practice slot
-        else:
-            for practice_slot in self.practice_slots.index:
-                # Create a new schedule with this practice slot
-                new_pr = pr[:index] + [practice_slot] + pr[index+1:]
-                # Push into heap with the '*' count as priority
-                if not mut:
-                    self.fringe.append((-index, (new_pr,'?')))
-                else:
-                    self.fringe.append((1, (new_pr,'?')))
+       # ok so instead of doing what's down below, we want to first get the game/practice with the highest score
+        if not self.df_with_scores_changing.empty:
+            highest_score = self.df_with_scores_changing['Score'].min() # we get the highest score here
+            max_row_label = self.df_with_scores_changing['Score'].idxmin()  # we get the corresponding highest score's label 
+            max_row = self.df_with_scores_changing.loc[[self.df_with_scores_changing['Score'].idxmin()]] # here it gets the whole row of that highest scroe
+            idx = self.events.index.get_loc(max_row_label) # here it gets the index of the highest score
+            print(f'max score : {highest_score}')
+            print(f'max score label : {max_row_label}')
+            print(f'max row  : {max_row}')
+            print(f'idx  : {idx}')
+            # ok, now we have the max label and score, we need to say that we're first adding that to our schedule
+            if (max_row['Type'].iloc[0] == "G"):
+                for game_slot in self.game_slots.index:
+                    new_pr = pr[:idx] + [game_slot] + pr[idx+1:]
+                    print(f'new pr  : {new_pr}')
+                    # # Push into heap with the '*' count as priority
+                    if not mut:
+                        self.fringe.append((-index, (new_pr,'?')))
+                    else:
+                        self.fringe.append((1, (new_pr,'?')))
+                # now we gotta remove the highest index game we just did so it doesn't slot it again
+                self.df_with_scores_changing = self.df_with_scores_changing.drop(max_row_label)
+
+            else:
+                for practice_slot in self.practice_slots.index:
+                    new_pr = pr[:idx] + [self.practice_slots] + pr[idx+1:]
+                    print(f'new pr  : {new_pr}')
+                    # # Push into heap with the '*' count as priority
+                    if not mut:
+                        self.fringe.append((-index, (new_pr,'?')))
+                    else:
+                        self.fringe.append((1, (new_pr,'?')))
+                # now we gotta remove the highest index game we just did so it doesn't slot it again
+                self.df_with_scores_changing = self.df_with_scores_changing.drop(max_row_label)
+        # else:
+            # return pr
+        # Create a new schedule with this slot
+        # new_pr = pr[:idx] + [max_row] + pr[idx+1:]
+        # print(f'new pr  : {new_pr}')
+        # # # Push into heap with the '*' count as priority
+        # if not mut:
+        #     self.fringe.append((-index, (new_pr,'?')))
+        # else:
+        #     self.fringe.append((1, (new_pr,'?')))
+        
+        #emily's code
+        # # Check if it's in the range for game slots
+        # if index < len(self.games):
+        #     for game_slot in self.game_slots.index:
+        #         # Create a new schedule with this game slot
+        #         new_pr = pr[:index] + [game_slot] + pr[index+1:]
+        #         print(f'new pr  : {new_pr}')
+
+        #         # Push into heap with the '*' count as priority
+        #         if not mut:
+        #             self.fringe.append((-index, (new_pr,'?')))
+        #         else:
+        #             self.fringe.append((1, (new_pr,'?')))
+        # # # Otherwise, it must be a practice slot
+        # else:
+        #     for practice_slot in self.practice_slots.index:
+        #         # Create a new schedule with this practice slot
+        #         new_pr = pr[:index] + [practice_slot] + pr[index+1:]
+        #         # Push into heap with the '*' count as priority
+        #         if not mut:
+        #             self.fringe.append((-index, (new_pr,'?')))
+        #         else:
+        #             self.fringe.append((1, (new_pr,'?')))
 
     def starterSlot(self, row):
         if row['Div'] == "09" and row['Type'] == "G":
             # using reverse here to say that the smallest number of slots available should hold the greatest weight, adding 1 just to make the resulting value bigger
-            starterValue = 1/4 + 1
+            starterValue = 4 
         elif row['Div'] == "09" and row['Type'] == "P":
-            starterValue = 1/6 + 1
+            starterValue = 6 
         elif row['Div'] != "09" and row['Type'] == "G":
-            starterValue = 1/20 + 1
+            starterValue = 20 
         elif row['Div'] != "09" and row['Type'] == "P":
-            starterValue = 1/31 + 1
+            starterValue = 31 
         else:
             starterValue = 0
         return starterValue
@@ -170,7 +218,56 @@ class OrTreeScheduler:
         else:
             value = 0
         return  value
-        # print(f"row label: {row_label}")
+    def teamBusy(self, row, df): 
+        sameTeam = df[
+            (df['League'] == row['League']) &
+            (df['Div'] == row['Div']) &
+            (df['Tier'] == row['Tier'])]
+        # so we need to add 1 if our practice is schdeuled on moday anytime or on tuesday (not including 9am, 15:00,and 18:00)
+        excluded_times = ['TU9:00', 'TU15:00', 'TU18:00']
+        teamBusyValue = 0  
+
+        # we need to add 2 if the game is assigned on monday or tuesday at 9, 15:00, 18:00,, or there's a friday practice, or tuesday game
+        # we first need to get the team, it can either be w/o prc or with
+        # CMSA U10T3 DIV 01 PRC 01
+        # CMSA U10T3 DIV 01
+        # so we need compare that all three r the same
+        # ok, we get a df with the same team
+        # we need to check if the team has a practice on monday
+        # Split into game DataFrame and practice DataFrame
+        games_df = sameTeam[sameTeam['Type'] == 'G']
+        practices_df = sameTeam[sameTeam['Type'] == 'P']
+        if not practices_df.empty:
+            for _, row in practices_df.iterrows():
+                if row['Part_assign'] == "MO9:00":
+                    teamBusyValue += 1
+                if row['Part_assign'].startswith('TU') and row['Part_assign'] not in excluded_times:
+                    teamBusyValue += 1
+                if row['Part_assign'] in excluded_times:
+                    teamBusyValue += 2
+                if row['Part_assign'].startswith("FR"):
+                    teamBusyValue += 2
+        if not games_df.empty:
+            for _, row in games_df.iterrows():
+                if row['Part_assign'].startswith("MO") or row['Part_assign'].startswith("MO"):
+                    teamBusyValue += 2
+        return teamBusyValue
+
+    def tierBusy(self, row, sameTeam):
+        # we will be given a game, only games, and have to see if it's in the tiers U15,16,17,19 and if it is and it is assinged, then we add a penalty
+        games_df = sameTeam[sameTeam['Type'] == 'G']
+        tierBusyValue = 0  
+
+        if not games_df.empty:
+            for _, row in games_df.iterrows():
+                if row['Tier'].startswith("U15") or row['Tier'].startswith("U16") or row['Tier'].startswith("U17") or row['Tier'].startswith("U19"):
+                    tierBusyValue += 1
+        return tierBusyValue
+
+
+
+
+    
     def score(self, givenDataset):
         # Reset the index, moving index labels to a new column
         df_reset = givenDataset.reset_index()
@@ -182,7 +279,9 @@ class OrTreeScheduler:
         for _, row in df_reset.iterrows():
             starterVal = self.starterSlot(row)
             disallowedSlotsVal = self.disallowedSlots(row)
-            scoreVal = starterVal + disallowedSlotsVal
+            teamBusyVal = self.teamBusy(row, df_reset)
+            tierBusyVal = self.tierBusy(row, df_reset)
+            scoreVal = starterVal - disallowedSlotsVal - teamBusyVal - tierBusyVal
             scores.append(scoreVal)  # Append the score to the list
         
         # Add the scores as a new column to the DataFrame
@@ -435,6 +534,7 @@ class OrTreeScheduler:
         Returns:
             list: A valid schedule generated by the OrTree search algorithm.
         """
+        self.df_with_scores_changing = self.df_with_scores
         self.tempA = tempA
         self.tempB = tempB
         self.fringe = []
@@ -443,9 +543,6 @@ class OrTreeScheduler:
         pr0 = self.starter_slots
 
         if (tempA or tempB) and not (tempA and tempB):
-            print("TEMPA AND B")
-            print(tempA)
-            print(tempB)
 
             self.randomNumbers = list(range(self.length))
             sched_list = self.mutate(pr0) 
