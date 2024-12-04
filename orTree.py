@@ -73,7 +73,6 @@ class OrTreeScheduler:
         # print(f"TYPE: {env.game_slots  }")
         # print(f'help: {dir(env)}')
 
-
         # populate local variables
         self.game_slots = env.game_slots
         self.practice_slots = env.practice_slots
@@ -89,6 +88,15 @@ class OrTreeScheduler:
         self.length = env.event_length()
         self.fringe = []
         self.starter_slots = env.preassigned_slots
+        
+        
+        # ok so right now it's seeing if we used up all the games, and starts assigning them one by one
+        # what we want to do instead is assign a value based on the score of a game fulfilling certain hardconstraints
+        # if it fulfills more hard constraints (meaning that it has more hard constraints), it will have a higher score
+        # we can call a score function that does all the math
+        df_with_scores = self.score(self.events)
+        print(f"SCORES: {df_with_scores['Score']}")
+        
     # TODO: @Emily 
 
     def altern(self, pr):
@@ -120,12 +128,6 @@ class OrTreeScheduler:
                 index (Int): the index in the schedule to schedule a slot into
                 pr (list): the current schedule being modified
         """
-        
-        # ok so right now it's seeing if we used up all the games, and starts assigning them one by one
-        # what we want to do instead is assign a value based on the score of a game fulfilling certain hardconstraints
-        # if it fulfills more hard constraints (meaning that it has more hard constraints), it will have a higher score
-        # we can call a score function that does all the math
-        score = self.score(self.events)
         # Check if it's in the range for game slots
         if index < len(self.games):
             for game_slot in self.game_slots.index:
@@ -149,27 +151,43 @@ class OrTreeScheduler:
 
     def starterSlot(self, row):
         if row['Div'] == "09" and row['Type'] == "G":
-            starterValue = 4
+            # using reverse here to say that the smallest number of slots available should hold the greatest weight, adding 1 just to make the resulting value bigger
+            starterValue = 1/4 + 1
         elif row['Div'] == "09" and row['Type'] == "P":
-            starterValue = 6
+            starterValue = 1/6 + 1
         elif row['Div'] != "09" and row['Type'] == "G":
-            starterValue = 20
+            starterValue = 1/20 + 1
         elif row['Div'] != "09" and row['Type'] == "P":
-            starterValue = 31
+            starterValue = 1/31 + 1
         else:
             starterValue = 0
         return starterValue
     def disallowedSlots(self, row):
         # so on every row (every specifc game), we get that games name and we also have a list of invalid assignments. if a game can go into a specifc invalid time slot, we add a penalty
-        row_label = row.iloc[:,0]
-        print(f"row label: {row_label}")
+        row_label = row['Label']
+        if row_label in row['Unwanted']:
+            value = 1
+        else:
+            value = 0
+        return  value
+        # print(f"row label: {row_label}")
     def score(self, givenDataset):
-        # print(f"Given DF: {givenDataset}")
-        for _, row in givenDataset.iterrows():
+        # Reset the index, moving index labels to a new column
+        df_reset = givenDataset.reset_index()
+        # Rename the new column for clarity (optional)
+        df_reset = df_reset.rename(columns={'index': 'Label'})
+        
+        scores = []  # Initialize an empty list to store scores
+
+        for _, row in df_reset.iterrows():
             starterVal = self.starterSlot(row)
             disallowedSlotsVal = self.disallowedSlots(row)
-            scoreVal = starterVal
-        return scoreVal
+            scoreVal = starterVal + disallowedSlotsVal
+            scores.append(scoreVal)  # Append the score to the list
+        
+        # Add the scores as a new column to the DataFrame
+        givenDataset['Score'] = scores
+        return givenDataset
 
 
     def ftrans(self, state):
