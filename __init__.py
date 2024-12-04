@@ -13,7 +13,7 @@ if __name__ == "__main__":
     scheduler = OrTreeScheduler(constraints, env)
     processor = search_process.ScheduleProcessor(scheduler)
 
-    schedule = processor.processSchedules(100,10)
+    schedule = processor.processSchedules(100000,10000)
     
     print(schedule)
     
