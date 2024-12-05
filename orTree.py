@@ -78,7 +78,7 @@ class OrTreeScheduler:
         self.practice_slots = env.practice_slots
         self.events = env.events
         # print(f"eventsss: {self.events}")
-        print("\ngames\n ", self.game_slots)
+        # print("\ngames\n ", self.game_slots)
 
         # Filter the events DataFrame to include only games
         self.games = env.events[env.events['Type']=='G']
@@ -96,7 +96,9 @@ class OrTreeScheduler:
         # if it fulfills more hard constraints (meaning that it has more hard constraints), it will have a higher score
         # we can call a score function that does all the math to initalize everything
         self.df_with_scores = self.score(self.events)
-        print(f"SCORES: {self.df_with_scores['Score']}")
+        self.df_with_scores = self.df_with_scores.sort_values(by='Score', ascending=True)
+
+        # print(f"SCORES: {self.df_with_scores['Score']}")
         
     # TODO: @Emily 
 
@@ -112,15 +114,24 @@ class OrTreeScheduler:
             Returns:
                 Boolean: True if altern function successfully applied, False otherwise
         """
-        for i, slot in enumerate(pr):
-            # Find the first unscheduled slot
-            if slot == '*': 
-                self.pushFringe(i, pr)
-                # recalculate all the scores (some of the functions will add more penalties if a team's game or practice is assigned)
-                self.df_with_scores = self.score(self.df_with_scores)
-                print(f"SCORES!!!: {self.df_with_scores['Score']}")
+        # Count '*' values
+        star_count = pr.count('*')
 
-                return True
+        # Count non-'*' values
+        other_count = len(pr) - star_count
+        if star_count != 0:
+            self.pushFringe(other_count, pr)
+            return True
+
+        # for i, slot in enumerate(pr):
+            # Find the first unscheduled slot
+            # if slot == '*': 
+                # self.pushFringe(i, pr)
+                # recalculate all the scores (some of the functions will add more penalties if a team's game or practice is assigned)
+                # self.df_with_scores = self.score(self.df_with_scores)
+                # print(f"SCORES!!!: {self.df_with_scores['Score']}")
+
+                # return True
         # Return False if no unscheduled slots were found
         return False
 
@@ -133,45 +144,48 @@ class OrTreeScheduler:
                 index (Int): the index in the schedule to schedule a slot into
                 pr (list): the current schedule being modified
         """
+
        # ok so instead of doing what's down below, we want to first get the game/practice with the highest constraints (lowest num)
-        if not self.df_with_scores_changing.empty:
-            lowest_score = self.df_with_scores_changing['Score'].min() # we get the lowest score here
-            min_row_label = self.df_with_scores_changing['Score'].idxmin()  # we get the corresponding lowest score's label 
-            min_row = self.df_with_scores_changing.loc[[self.df_with_scores_changing['Score'].idxmin()]] # here it gets the whole row of that lowest scroe
+        if not self.df_with_scores.empty:
+            lowest_score = self.df_with_scores['Score'].iloc[index] # we get the lowest score here
+            min_row_label = self.df_with_scores['Score'].index[index]  # we get the corresponding lowest score's label 
+            min_row = self.df_with_scores.loc[[self.df_with_scores['Score'].index[index]]] # here it gets the whole row of that lowest scroe
             idx = self.events.index.get_loc(min_row_label) # here it gets the index of the lowest score
+            print(f'index : {index}')
+
             print(f'max score : {lowest_score}')
             print(f'max score label : {min_row_label}')
             print(f'max row  : {min_row}')
             print(f'idx  : {idx}')
             # ok, now we have the min label and score, we need to say that we're first adding that to our schedule
             if (min_row['Type'].iloc[0] == "G"):
-                random_game_slot = random.choice(self.game_slots.index)
-                new_pr = pr[:idx] + [random_game_slot] + pr[idx+1:]
-                print(f'new pr  : {new_pr}')
-                # # Push into heap with the '*' count as priority
-                if not mut:
-                    self.fringe.append((-index, (new_pr,'?')))
-                else:
-                    self.fringe.append((1, (new_pr,'?')))
-                # we also have to update the old dataset so we can do the calculation again
-                self.df_with_scores.loc[min_row_label, 'Part_assign'] = random_game_slot
-                # now we gotta remove the highest index game we just did so it doesn't slot it again
-                self.df_with_scores_changing = self.df_with_scores_changing.drop(min_row_label)
+                for game_slot in self.game_slots.index:
+                    new_pr = pr[:idx] + [game_slot] + pr[idx+1:]
+                    print(f'new pr  : {new_pr}')
+                    # # Push into heap with the '*' count as priority
+                    if not mut:
+                        self.fringe.append((-index, (new_pr,'?')))
+                    else:
+                        self.fringe.append((1, (new_pr,'?')))
+                    # we also have to update the old dataset so we can do the calculation again
+                    # self.df_with_scores.loc[min_row_label, 'Part_assign'] = game_slot
+                    # now we gotta remove the highest index game we just did so it doesn't slot it again
+                # self.df_with_scores_changing = self.df_with_scores_changing.drop(min_row_label)
 
 
             else:
-                random_practice_slot = random.choice(self.practice_slots.index)
-                new_pr = pr[:idx] + [random_practice_slot] + pr[idx+1:]
-                print(f'new pr  : {new_pr}')
-                # # Push into heap with the '*' count as priority
-                if not mut:
-                    self.fringe.append((-index, (new_pr,'?')))
-                else:
-                    self.fringe.append((1, (new_pr,'?')))
-                # we also have to update the old dataset so we can do the calculation again
-                self.df_with_scores.loc[min_row_label, 'Part_assign'] = random_practice_slot
+                for practice_slot in self.practice_slots.index:
+                    new_pr = pr[:idx] + [practice_slot] + pr[idx+1:]
+                    print(f'new pr  : {new_pr}')
+                    # # Push into heap with the '*' count as priority
+                    if not mut:
+                        self.fringe.append((-index, (new_pr,'?')))
+                    else:
+                        self.fringe.append((1, (new_pr,'?')))
+                    # we also have to update the old dataset so we can do the calculation again
+                    # self.df_with_scores.loc[min_row_label, 'Part_assign'] = practice_slot
                 # now we gotta remove the highest index game we just did so it doesn't slot it again
-                self.df_with_scores_changing = self.df_with_scores_changing.drop(min_row_label)
+                # self.df_with_scores_changing = self.df_with_scores_changing.drop(min_row_label)
         
     def starterSlot(self, row):
         if row['Div'] == "09" and row['Type'] == "G":
@@ -226,7 +240,7 @@ class OrTreeScheduler:
         return teamBusyValue
 
     def tierBusy(self, row, sameTeam):
-        # we will be given a game, only games, and have to see if it's in the tiers U15,16,17,19 and if it is and it is assinged, then we add a penalty
+        # we will be given a game, only games, and have to see if it's in the tiers U15,16,17,19 and if it is, then we add a penalty
         games_df = sameTeam[sameTeam['Type'] == 'G']
         tierBusyValue = 0  
 
@@ -399,36 +413,51 @@ class OrTreeScheduler:
 
             if not tempSched.max_exceeded(event_details["Assigned"], event_details["Type"]):
                 print("Failed Max")
+                # self.df_with_scores_changing = self.df_with_scores
+
                 return False
 
             if (event_details["Assigned"] != event_details["Part_assign"]) and (event_details["Part_assign"] != "*"):
                 print("Failed Part_assign")
+                # self.df_with_scores_changing = self.df_with_scores
+
                 return False
             
             if event_details["Assigned"] in event_details['Unwanted']:
                 print("Failed Unwanted")
+                # self.df_with_scores_changing = self.df_with_scores
+
                 return False
 
             if not self.constraints.incompatible(tempSched.get_Assignments(), event_details["Incompatible"], event_details["Type"], event_details["Assigned"], event_id):
                 print("Failed Incompatible")
+                # self.df_with_scores_changing = self.df_with_scores
+
                 return False
             
             if not self.constraints.check_evening_div(event_details["Assigned"][2:], event_details["Div"]):
                 print("Failed Evening Div")
+                # self.df_with_scores_changing = self.df_with_scores
+
                 return False
 
             if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"regcheck"):
                 print("Failed U15-U19 Check")
+                # self.df_with_scores_changing = self.df_with_scores
+
                 return False
 
             if self.constraints.special_events:
                 if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"specialcheck"):
                     print("Failed Special Check")
+                    # self.df_with_scores_changing = self.df_with_scores
+
                     return False   
                      
             if event_details["Type"] == "P" and ((event_details["Tier"] != 'U13T1S') or (event_details["Tier"] != 'U12T1S')):
                 if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"pcheck"):
                     print("Failed Practice Check")
+                    # self.df_with_scores_changing = self.df_with_scores
                     return False
 
         return True
@@ -513,7 +542,11 @@ class OrTreeScheduler:
         Returns:
             list: A valid schedule generated by the OrTree search algorithm.
         """
-        self.df_with_scores_changing = self.df_with_scores
+        # self.df_with_scores_changing = self.df_with_scores
+        self.df_with_scores = self.score(self.events)
+        self.df_with_scores = self.df_with_scores.sort_values(by='Score', ascending=True)
+        print(f"SCORES: {self.df_with_scores['Score']}")
+
         self.tempA = tempA
         self.tempB = tempB
         self.fringe = []
