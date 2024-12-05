@@ -6,14 +6,14 @@ import search_process
 import timeit
 
 if __name__ == "__main__":
-    env = Environment('CPSC433F24-LargeInput1.txt', [1,1,0,0,100,100,0,10], verbose = 1)
+    env = Environment('minnumber.txt', [1,1,0,0,100,100,0,10], verbose = 1)
     sched = Schedule(env)
     
     constraints = Constr(env)
     scheduler = OrTreeScheduler(constraints, env)
     processor = search_process.ScheduleProcessor(scheduler)
 
-    schedule = processor.processSchedules(100000,10000)
+    schedule = processor.processSchedules(100,10)
     
     print(schedule)
     

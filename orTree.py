@@ -78,11 +78,12 @@ class OrTreeScheduler:
         self.practice_slots = env.practice_slots
         self.events = env.events
         # print(f"eventsss: {self.events}")
+        print("\ngames\n ", self.game_slots)
 
         # Filter the events DataFrame to include only games
         self.games = env.events[env.events['Type']=='G']
         # print("\nEvents\n", env.events)
-        # print("\ngames\n ", self.games)
+        #print("\ngames\n ", self.games)
         self.constraints = constraints
         self.env = env
         self.length = env.event_length()
@@ -144,31 +145,31 @@ class OrTreeScheduler:
             print(f'idx  : {idx}')
             # ok, now we have the min label and score, we need to say that we're first adding that to our schedule
             if (min_row['Type'].iloc[0] == "G"):
-                for game_slot in self.game_slots.index:
-                    new_pr = pr[:idx] + [game_slot] + pr[idx+1:]
-                    print(f'new pr  : {new_pr}')
-                    # # Push into heap with the '*' count as priority
-                    if not mut:
-                        self.fringe.append((-index, (new_pr,'?')))
-                    else:
-                        self.fringe.append((1, (new_pr,'?')))
-                    # we also have to update the old dataset so we can do the calculation again
-                    self.df_with_scores.loc[min_row_label, 'Part_assign'] = game_slot
+                random_game_slot = random.choice(self.game_slots.index)
+                new_pr = pr[:idx] + [random_game_slot] + pr[idx+1:]
+                print(f'new pr  : {new_pr}')
+                # # Push into heap with the '*' count as priority
+                if not mut:
+                    self.fringe.append((-index, (new_pr,'?')))
+                else:
+                    self.fringe.append((1, (new_pr,'?')))
+                # we also have to update the old dataset so we can do the calculation again
+                self.df_with_scores.loc[min_row_label, 'Part_assign'] = random_game_slot
                 # now we gotta remove the highest index game we just did so it doesn't slot it again
                 self.df_with_scores_changing = self.df_with_scores_changing.drop(min_row_label)
 
 
             else:
-                for practice_slot in self.practice_slots.index:
-                    new_pr = pr[:idx] + [practice_slot] + pr[idx+1:]
-                    print(f'new pr  : {new_pr}')
-                    # # Push into heap with the '*' count as priority
-                    if not mut:
-                        self.fringe.append((-index, (new_pr,'?')))
-                    else:
-                        self.fringe.append((1, (new_pr,'?')))
-                    # we also have to update the old dataset so we can do the calculation again
-                    self.df_with_scores.loc[min_row_label, 'Part_assign'] = practice_slot
+                random_practice_slot = random.choice(self.practice_slots.index)
+                new_pr = pr[:idx] + [random_practice_slot] + pr[idx+1:]
+                print(f'new pr  : {new_pr}')
+                # # Push into heap with the '*' count as priority
+                if not mut:
+                    self.fringe.append((-index, (new_pr,'?')))
+                else:
+                    self.fringe.append((1, (new_pr,'?')))
+                # we also have to update the old dataset so we can do the calculation again
+                self.df_with_scores.loc[min_row_label, 'Part_assign'] = random_practice_slot
                 # now we gotta remove the highest index game we just did so it doesn't slot it again
                 self.df_with_scores_changing = self.df_with_scores_changing.drop(min_row_label)
         
@@ -240,7 +241,8 @@ class OrTreeScheduler:
         otherDivison = row['Incompatible']
         timeConflictValue = 0
         if otherDivison != []:
-            timeConflictValue += 1
+            for value in row['Incompatible']:
+                timeConflictValue += 1
         return timeConflictValue
 
 
