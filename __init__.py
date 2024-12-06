@@ -3,10 +3,11 @@ from schedule import Schedule
 from orTree import OrTreeScheduler
 from constr import Constr
 import search_process
-import timeit
+import time
 
 if __name__ == "__main__":
-    env = Environment('minnumber.txt', [1,1,1,1,10,10,10,10], verbose = 1)
+    start_time = time.time()
+    env = Environment('CPSC433F24-LargeInput1.txt', [1,1,0,1,100,100,6,10], verbose = 1)
     sched = Schedule(env)
     
     constraints = Constr(env)
@@ -16,11 +17,12 @@ if __name__ == "__main__":
     schedule = processor.processSchedules(100,10)
     
     print(schedule)
-    
+
     timeslots = schedule.get_scheduled()
     
     # Sort the DataFrame alphabetically based on League, Tier, Div, Practice_Type, and Num
     timeslots = timeslots.sort_values(by=['League', 'Tier', 'Div', 'Practice_Type', 'Num'])
+    end = time.time()
 
     # Maximum width for the left part before ':' to ensure consistent alignment
     max_width = max(timeslots.apply(lambda row: f"{row['League']} {row['Tier']} DIV {row['Div']} {row['Practice_Type']} {row['Num']}".strip(), axis=1).apply(len))
@@ -32,7 +34,9 @@ if __name__ == "__main__":
             base += f" {row['Practice_Type']} {row['Num']}"
         day, time = row['Assigned'][:2], row['Assigned'][2:]
         print(f"{base:<{max_width}} : {day}, {time}")
-
+    
+    total = end - start_time
+    print(f"{total} seconds ")
 
     # Testing the assign function
     # sched.assign(scheduler.generate_schedule(starting))
