@@ -114,15 +114,30 @@ class OrTreeScheduler:
             Returns:
                 Boolean: True if altern function successfully applied, False otherwise
         """
+
         # Count '*' values
         star_count = pr.count('*')
+        print(f'star count : {star_count}')
 
         # Count non-'*' values
         other_count = len(pr) - star_count
+        print(f'other_count  : {other_count}')
+        
+        # Sort scores to always pick the lowest priority first
+        # self.df_with_scores = self.score(self.df_with_scores)
+        # self.df_with_scores = self.df_with_scores.sort_values(by='Score', ascending=True)
+
+        # for index in range(len(self.df_with_scores)):
+        #     self.pushFringe(index, pr)
+        #     return True
+
+        # #basically, we need some way to store that 
+        # for index, row in self.df_with_scores.iterrows():
+        #     self.pushFringe(index, pr)
+        #     return True
         if star_count != 0:
             self.pushFringe(other_count, pr)
             return True
-
         # for i, slot in enumerate(pr):
             # Find the first unscheduled slot
             # if slot == '*': 
@@ -144,6 +159,8 @@ class OrTreeScheduler:
                 index (Int): the index in the schedule to schedule a slot into
                 pr (list): the current schedule being modified
         """
+# the problem is that once we go through every leaf of the main assignment, the second assingment isn't basing it off index anymore. It just takes the next possible inital assignment (index 1) and start assigning that first
+# NO the problem is when it tries to mutate. what's happening right now is it's very structured in that it needs the df to be ordered from lowest to highest and bases the index to assign off that. if the initally assigned index is higher than the lowest, it gets screwed up. So to solve that, you need to find a way to assing the lowest thing first but also be flexible incase a lowest thing wasn't assinged first
 
        # ok so instead of doing what's down below, we want to first get the game/practice with the highest constraints (lowest num)
         if not self.df_with_scores.empty:
@@ -151,12 +168,16 @@ class OrTreeScheduler:
             min_row_label = self.df_with_scores['Score'].index[index]  # we get the corresponding lowest score's label 
             min_row = self.df_with_scores.loc[[self.df_with_scores['Score'].index[index]]] # here it gets the whole row of that lowest scroe
             idx = self.events.index.get_loc(min_row_label) # here it gets the index of the lowest score
-            print(f'index : {index}')
+            assigned_indices = {i for i, slot in enumerate(pr) if slot != '*'}
 
-            print(f'max score : {lowest_score}')
-            print(f'max score label : {min_row_label}')
-            print(f'max row  : {min_row}')
-            print(f'idx  : {idx}')
+            # print(f'index : {index}')
+            # print(f'max score : {lowest_score}')
+            # print(f'max score label : {min_row_label}')
+            # print(f'max row  : {min_row}')
+            # print(f'idx  : {idx}')        
+            # Skip if already assigned
+            if idx in assigned_indices:
+                return
             # ok, now we have the min label and score, we need to say that we're first adding that to our schedule
             if (min_row['Type'].iloc[0] == "G"):
                 for game_slot in self.game_slots.index:
@@ -203,7 +224,7 @@ class OrTreeScheduler:
         # so on every row (every specifc game), we get that games name and we also have a list of invalid assignments. if a game can go into a specifc invalid time slot, we add a penalty
         row_label = row['Label']
         if row_label in row['Unwanted']:
-            value = 1
+            value += 1
         else:
             value = 0
         return  value
