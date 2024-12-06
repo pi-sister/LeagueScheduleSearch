@@ -123,14 +123,15 @@ class OrTreeScheduler:
         # other_count = len(pr) - star_count
         # print(f'other_count  : {other_count}')
         
-        #Sort scores to always pick the lowest priority first
-        self.df_with_scores = self.score(self.df_with_scores)
-        self.df_with_scores = self.df_with_scores.sort_values(by='Score', ascending=True)
-
+        #regenerate and sort scores to always pick the lowest priority first
+        self.df_with_scores = self.score(self.df_with_scores).sort_values(by='Score')
+        # Attempt to generate new states
         for index in range(len(self.df_with_scores)):
-            next = self.pushFringe(index, pr)
-            if next:
+            assigned_indices = {i for i, slot in enumerate(pr) if slot != '*'}
+
+            if self.pushFringe(index, pr, assigned_indices):
                 return True
+        return False
 
         # #basically, we need some way to store that 
         # for index, row in self.df_with_scores.iterrows():
@@ -152,7 +153,7 @@ class OrTreeScheduler:
         return False
 
 
-    def pushFringe(self, index, pr, mut = False):
+    def pushFringe(self, index, pr, assigned_indices, mut = False):
         """
         Function to push to the fringe all possible state combinations. Used in part of altern function
 
@@ -162,79 +163,97 @@ class OrTreeScheduler:
         """
 # the problem is that once we go through every leaf of the main assignment, the second assingment isn't basing it off index anymore. It just takes the next possible inital assignment (index 1) and start assigning that first
 # NO the problem is when it tries to mutate. what's happening right now is it's very structured in that it needs the df to be ordered from lowest to highest and bases the index to assign off that. if the initally assigned index is higher than the lowest, it gets screwed up. So to solve that, you need to find a way to assing the lowest thing first but also be flexible incase a lowest thing wasn't assinged first
-
+        min_row_label = self.df_with_scores['Score'].index[index]  # we get the corresponding lowest score's label 
+        idx = self.events.index.get_loc(min_row_label) # here it gets the index of the lowest score
+        if idx in assigned_indices:
+            return False
        # ok so instead of doing what's down below, we want to first get the game/practice with the highest constraints (lowest num)
-        if not self.df_with_scores.empty:
-            lowest_score = self.df_with_scores['Score'].iloc[index] # we get the lowest score here
-            min_row_label = self.df_with_scores['Score'].index[index]  # we get the corresponding lowest score's label 
-            min_row = self.df_with_scores.loc[[self.df_with_scores['Score'].index[index]]] # here it gets the whole row of that lowest scroe
-            idx = self.events.index.get_loc(min_row_label) # here it gets the index of the lowest score
-            assigned_indices = {i for i, slot in enumerate(pr) if slot != '*'}
+        # lowest_score = self.df_with_scores['Score'].iloc[index] # we get the lowest score here
+        min_row = self.df_with_scores.loc[[self.df_with_scores['Score'].index[index]]] # here it gets the whole row of that lowest scroe
+        # assigned_indices = {i for i, slot in enumerate(pr) if slot != '*'}
 
-            # print(f'index : {index}')
-            # print(f'max score : {lowest_score}')
-            # print(f'max score label : {min_row_label}')
-            # print(f'max row  : {min_row}')
-            # print(f'idx  : {idx}')        
-            # Skip if already assigned
-            if idx in assigned_indices:
-                return False
-            # ok, now we have the min label and score, we need to say that we're first adding that to our schedule
-            if (min_row['Type'].iloc[0] == "G"):
-                for game_slot in self.game_slots.index:
-                    new_pr = pr[:idx] + [game_slot] + pr[idx+1:]
-                    # if constraints are violated
-                    if (not self.constr(new_pr)):
-                        continue
-                    print(f'new pr  : {new_pr} \n')
-                    # # Push into heap with the '*' count as priority
-                    if not mut:
-                        self.fringe.append((-index, (new_pr,'?')))
-                    else:
-                        self.fringe.append((1, (new_pr,'?')))
-                    # we also have to update the old dataset so we can do the calculation again
-                    # self.df_with_scores.loc[min_row_label, 'Part_assign'] = game_slot
-                    # now we gotta remove the highest index game we just did so it doesn't slot it again
-                # self.df_with_scores_changing = self.df_with_scores_changing.drop(min_row_label)
+        # print(f'index : {index}')
+        # print(f'min score : {lowest_score}')
+        # print(f'max score label : {min_row_label}')
+        # print(f'max row  : {min_row}')
+        # print(f'idx  : {idx}')        
+        # Skip if already assigned
+        if idx in assigned_indices:
+            return False
+        
+            # Determine slots based on type
+        # slots = self.game_slots.index if min_row['Type'] == "G" else self.practice_slots.index
 
-
-            else:
-                for practice_slot in self.practice_slots.index:
-                    new_pr = pr[:idx] + [practice_slot] + pr[idx+1:]
-                    print(f'new pr  : {new_pr} \n')
-                    # if constraints are violated
-                    if (not self.constr(new_pr)):
-                        continue
-                    # # Push into heap with the '*' count as priority
-                    if not mut:
-                        self.fringe.append((-index, (new_pr,'?')))
-                    else:
-                        self.fringe.append((1, (new_pr,'?')))
-                    # we also have to update the old dataset so we can do the calculation again
-                    # self.df_with_scores.loc[min_row_label, 'Part_assign'] = practice_slot
+        # for slot in slots:
+        #     new_pr = pr[:idx] + [slot] + pr[idx + 1:]
+        #     if not self.constr(new_pr):
+        #         continue
+        #     priority = -index if not mut else 1
+        #     self.fringe.append((priority, (new_pr, '?')))
+        # return True
+        #ok, now we have the min label and score, we need to say that we're first adding that to our schedule
+        if (min_row['Type'].iloc[0] == "G"):
+            for game_slot in self.game_slots.index:
+                new_pr = pr[:idx] + [game_slot] + pr[idx+1:]
+                # if constraints are violated
+                if (not self.constr(new_pr)):
+                    continue
+                print(f'new pr  : {new_pr} \n')
+                # # Push into heap with the '*' count as priority
+                if not mut:
+                    self.fringe.append((-index, (new_pr,'?')))
+                else:
+                    self.fringe.append((1, (new_pr,'?')))
+                # we also have to update the old dataset so we can do the calculation again
+                # self.df_with_scores.loc[min_row_label, 'Part_assign'] = game_slot
                 # now we gotta remove the highest index game we just did so it doesn't slot it again
-                # self.df_with_scores_changing = self.df_with_scores_changing.drop(min_row_label)
-            return True
-    def starterSlot(self, row):
-        if row['Div'] == "09" and row['Type'] == "G":
-            starterValue = 4 
-        elif row['Div'] == "09" and row['Type'] == "P":
-            starterValue = 6 
-        elif row['Div'] != "09" and row['Type'] == "G":
-            starterValue = 20 
-        elif row['Div'] != "09" and row['Type'] == "P":
-            starterValue = 31 
+            # self.df_with_scores_changing = self.df_with_scores_changing.drop(min_row_label)
+
+
         else:
-            starterValue = 0
-        return starterValue
+            for practice_slot in self.practice_slots.index:
+                new_pr = pr[:idx] + [practice_slot] + pr[idx+1:]
+                print(f'new pr  : {new_pr} \n')
+                # if constraints are violated
+                if (not self.constr(new_pr)):
+                    continue
+                # # Push into heap with the '*' count as priority
+                if not mut:
+                    self.fringe.append((-index, (new_pr,'?')))
+                else:
+                    self.fringe.append((1, (new_pr,'?')))
+                # we also have to update the old dataset so we can do the calculation again
+                # self.df_with_scores.loc[min_row_label, 'Part_assign'] = practice_slot
+            # now we gotta remove the highest index game we just did so it doesn't slot it again
+            # self.df_with_scores_changing = self.df_with_scores_changing.drop(min_row_label)
+        return True
+    def starterSlot(self, row):
+        # if row['Div'] == "09" and row['Type'] == "G":
+        #     starterValue = 4 
+        # elif row['Div'] == "09" and row['Type'] == "P":
+        #     starterValue = 6 
+        # elif row['Div'] != "09" and row['Type'] == "G":
+        #     starterValue = 20 
+        # elif row['Div'] != "09" and row['Type'] == "P":
+        #     starterValue = 31 
+        # else:
+        #     starterValue = 0
+        # return starterValue
+        starter_values = {
+            ("09", "G"): 4, 
+            ("09", "P"): 6, 
+            ("!09", "G"): 20, 
+            ("!09", "P"): 31
+        }
+        key = (row['Div'] if row['Div'] == "09" else "!09", row['Type'])
+        return starter_values.get(key, 0)
+    
     def disallowedSlots(self, row):
         # so on every row (every specifc game), we get that games name and we also have a list of invalid assignments. if a game can go into a specifc invalid time slot, we add a penalty
-        row_label = row['Label']
-        if row_label in row['Unwanted']:
+        value = 0
+        for i in row['Label']:
             value += 1
-        else:
-            value = 0
-        return  value
+        return value
     def teamBusy(self, row, df): 
         sameTeam = df[
             (df['League'] == row['League']) &
@@ -291,11 +310,21 @@ class OrTreeScheduler:
     
     def score(self, givenDataset):
         # add a new column with the index name just so it's easier to compare something later
-        df_reset = givenDataset.reset_index()
-        df_reset = df_reset.rename(columns={'index': 'Label'})
-        
-        scores = []  # Initialize an empty list to store scores
+        # df_reset = givenDataset.reset_index()
+        # df_reset = df_reset.rename(columns={'index': 'Label'})
+        df_reset = givenDataset.reset_index().rename(columns={'index': 'Label'})
 
+        scores = []  # Initialize an empty list to store scores
+    # Vectorized score computation
+        # scores = (
+        #     df_reset.apply(self.starterSlot, axis=1) -
+        #     df_reset.apply(self.disallowedSlots, axis=1) -
+        #     df_reset.apply(lambda row: self.teamBusy(row, df_reset), axis=1) -
+        #     df_reset.apply(lambda row: self.tierBusy(row, df_reset), axis=1) -
+        #     df_reset.apply(self.timeConflicts, axis=1)
+        # )
+
+        # dataset['Score'] = scores
         for _, row in df_reset.iterrows():
             starterVal = self.starterSlot(row)
             disallowedSlotsVal = self.disallowedSlots(row)
@@ -321,8 +350,8 @@ class OrTreeScheduler:
         """
         pr = state[0]
         # if constraints are violated
-        if (not self.constr(state[0])):
-            return((pr, 'no'))
+        # if (not self.constr(state[0])):
+        #     return((pr, 'no'))
         # if schedule is complete
         if ('*' not in pr):
             return((pr, 'yes'))
