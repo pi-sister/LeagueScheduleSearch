@@ -115,29 +115,30 @@ class OrTreeScheduler:
                 Boolean: True if altern function successfully applied, False otherwise
         """
 
-        # Count '*' values
-        star_count = pr.count('*')
-        print(f'star count : {star_count}')
+        #Count '*' values
+        # star_count = pr.count('*')
+        # print(f'star count : {star_count}')
 
-        # Count non-'*' values
-        other_count = len(pr) - star_count
-        print(f'other_count  : {other_count}')
+        # # Count non-'*' values
+        # other_count = len(pr) - star_count
+        # print(f'other_count  : {other_count}')
         
-        # Sort scores to always pick the lowest priority first
-        # self.df_with_scores = self.score(self.df_with_scores)
-        # self.df_with_scores = self.df_with_scores.sort_values(by='Score', ascending=True)
+        #Sort scores to always pick the lowest priority first
+        self.df_with_scores = self.score(self.df_with_scores)
+        self.df_with_scores = self.df_with_scores.sort_values(by='Score', ascending=True)
 
-        # for index in range(len(self.df_with_scores)):
-        #     self.pushFringe(index, pr)
-        #     return True
+        for index in range(len(self.df_with_scores)):
+            next = self.pushFringe(index, pr)
+            if next:
+                return True
 
         # #basically, we need some way to store that 
         # for index, row in self.df_with_scores.iterrows():
         #     self.pushFringe(index, pr)
         #     return True
-        if star_count != 0:
-            self.pushFringe(other_count, pr)
-            return True
+        # if star_count != 0:
+        #     self.pushFringe(other_count, pr)
+        #     return True
         # for i, slot in enumerate(pr):
             # Find the first unscheduled slot
             # if slot == '*': 
@@ -177,12 +178,15 @@ class OrTreeScheduler:
             # print(f'idx  : {idx}')        
             # Skip if already assigned
             if idx in assigned_indices:
-                return
+                return False
             # ok, now we have the min label and score, we need to say that we're first adding that to our schedule
             if (min_row['Type'].iloc[0] == "G"):
                 for game_slot in self.game_slots.index:
                     new_pr = pr[:idx] + [game_slot] + pr[idx+1:]
-                    print(f'new pr  : {new_pr}')
+                    # if constraints are violated
+                    if (not self.constr(new_pr)):
+                        continue
+                    print(f'new pr  : {new_pr} \n')
                     # # Push into heap with the '*' count as priority
                     if not mut:
                         self.fringe.append((-index, (new_pr,'?')))
@@ -197,7 +201,10 @@ class OrTreeScheduler:
             else:
                 for practice_slot in self.practice_slots.index:
                     new_pr = pr[:idx] + [practice_slot] + pr[idx+1:]
-                    print(f'new pr  : {new_pr}')
+                    print(f'new pr  : {new_pr} \n')
+                    # if constraints are violated
+                    if (not self.constr(new_pr)):
+                        continue
                     # # Push into heap with the '*' count as priority
                     if not mut:
                         self.fringe.append((-index, (new_pr,'?')))
@@ -207,7 +214,7 @@ class OrTreeScheduler:
                     # self.df_with_scores.loc[min_row_label, 'Part_assign'] = practice_slot
                 # now we gotta remove the highest index game we just did so it doesn't slot it again
                 # self.df_with_scores_changing = self.df_with_scores_changing.drop(min_row_label)
-        
+            return True
     def starterSlot(self, row):
         if row['Div'] == "09" and row['Type'] == "G":
             starterValue = 4 
@@ -433,44 +440,44 @@ class OrTreeScheduler:
                 continue
 
             if not tempSched.max_exceeded(event_details["Assigned"], event_details["Type"]):
-                print("Failed Max")
+                # print("Failed Max")
                 # self.df_with_scores_changing = self.df_with_scores
 
                 return False
 
             if (event_details["Assigned"] != event_details["Part_assign"]) and (event_details["Part_assign"] != "*"):
-                print("Failed Part_assign")
+                # print("Failed Part_assign")
                 # self.df_with_scores_changing = self.df_with_scores
 
                 return False
             
             if event_details["Assigned"] in event_details['Unwanted']:
-                print("Failed Unwanted")
+                # print("Failed Unwanted")
                 # self.df_with_scores_changing = self.df_with_scores
 
                 return False
 
             if not self.constraints.incompatible(tempSched.get_Assignments(), event_details["Incompatible"], event_details["Type"], event_details["Assigned"], event_id):
-                print("Failed Incompatible")
+                # print("Failed Incompatible")
                 # self.df_with_scores_changing = self.df_with_scores
 
                 return False
             
             if not self.constraints.check_evening_div(event_details["Assigned"][2:], event_details["Div"]):
-                print("Failed Evening Div")
+                # print("Failed Evening Div")
                 # self.df_with_scores_changing = self.df_with_scores
 
                 return False
 
             if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"regcheck"):
-                print("Failed U15-U19 Check")
+                # print("Failed U15-U19 Check")
                 # self.df_with_scores_changing = self.df_with_scores
 
                 return False
 
             if self.constraints.special_events:
                 if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"specialcheck"):
-                    print("Failed Special Check")
+                    # print("Failed Special Check")
                     # self.df_with_scores_changing = self.df_with_scores
 
                     return False   
