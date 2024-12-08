@@ -429,7 +429,7 @@ class OrTreeScheduler:
         print(f"Searching for: \n{curr_row}")
 
         # return all not maxed out games / practices
-        available_slots = tempSched.return_not_maxed(curr_row['Type'][0]).index.to_list()
+        available_slots = tempSched.return_not_maxed(curr_row['Type']).index.to_list()
         print(f"unmaxed slots:{available_slots}")
 
         if curr_row['Tier'].startswith(('U13T1S', 'U12T1S')):
