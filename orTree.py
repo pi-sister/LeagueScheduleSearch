@@ -154,8 +154,9 @@ class OrTreeScheduler:
        # ok so instead of doing what's down below, we want to first get the game/practice with the highest constraints (lowest num)
         # lowest_score = self.df_with_scores['Score'].iloc[index] # we get the lowest score here
         min_row = self.df_with_scores.loc[[self.df_with_scores['Score'].index[index]]] # here it gets the whole row of that lowest scroe
-       
-        availablle_slots = self.constr(pr, min_row.iloc[0])
+        star_count = pr.count('*')
+
+        # availablle_slots = self.constr(pr, min_row.iloc[0])
 
         # for a_slot in availablle_slots:
         #     new_pr = pr[:idx] + [a_slot] + pr[idx+1:]
@@ -183,7 +184,7 @@ class OrTreeScheduler:
                 print(f'new pr  : {new_pr} \n')
                 # # Push into heap with the '*' count as priority
                 if not mut:
-                    self.fringe.append((-index, (new_pr,'?')))
+                    self.fringe.append((star_count, (new_pr,'?')))
                 else:
                     self.fringe.append((1, (new_pr,'?')))
                 # we also have to update the old dataset so we can do the calculation again
@@ -198,7 +199,7 @@ class OrTreeScheduler:
                     continue
                 # # Push into heap with the '*' count as priority
                 if not mut:
-                    self.fringe.append((-index, (new_pr,'?')))
+                    self.fringe.append((star_count, (new_pr,'?')))
                 else:
                     self.fringe.append((1, (new_pr,'?')))
                 # we also have to update the old dataset so we can do the calculation again
