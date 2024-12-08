@@ -102,7 +102,10 @@ class OrTreeScheduler:
         self.df_with_scores = self.score(self.events)
         self.df_with_scores = self.df_with_scores.sort_values(by='Score', ascending=True)
 
-        print(f"Whole scores dataframe: \n{self.df_with_scores[['League','Tier','Div','Score']]}")
+        # print(f"Whole scores dataframe: \n{self.df_with_scores[['League','Tier','Div','Score']]}")
+
+        self.invalid_assignments = {}  # Dictionary to track invalid combinations by position
+        self.assignment_history = []  # History of assignments for backtracking
 
         # print(f"SCORES: {self.df_with_scores['Score']}")
         
@@ -147,6 +150,7 @@ class OrTreeScheduler:
         min_row_label = self.df_with_scores['Score'].index[index]  # we get the corresponding lowest score's label 
         idx = self.events.index.get_loc(min_row_label) # here it gets the index of the lowest score
         assigned_indices = {i for i, slot in enumerate(pr) if slot != '*'}
+        star_count = pr.count('*')
 
 
         if idx in assigned_indices:
@@ -159,17 +163,49 @@ class OrTreeScheduler:
         if (min_row['Type'].iloc[0] == "G"):
             for game_slot in self.game_slots.index:
                 new_pr = pr[:idx] + [game_slot] + pr[idx+1:]
-                # if constraints are violated
+                print(f'invalid_assignments : {self.invalid_assignments} \n')
+
+                # Check for specific conflicts at the current position
+                if idx in self.invalid_assignments:
+                    for invalid_slot, conflicting_idx, conflicting_slot in self.invalid_assignments[idx]:
+                        if game_slot == invalid_slot and pr[conflicting_idx] == conflicting_slot:
+                            # Conflict detected; skip this assignment
+                            continue
                 if (not self.constr(new_pr)):
-                    # so we know that 'new_pr' violated some hard constraint, so we know that in the future if we ever get a sequence where we assign something to Mo9:00 and then the next leaf or all the leaves lead to an invalid solution once we start going through the rest of the assignments of that leaf, we know now never to expand that again since it leads to an invalid solution
-                    # so first we need to store that invalid addition
-                    # example, we assigned Mo9:00 and the assingment of Tu:930 dont work with it, we add that leaf to the our list of incompatibles
-                    
+                    #     # we need to know what was violated
+                   # Identify the conflicting pair and log it
+                    conflict = self.find_conflict(new_pr, idx)
+                    if conflict:
+                        conflicting_idx, conflicting_slot = conflict
+                        if idx not in self.invalid_assignments:
+                            self.invalid_assignments[idx] = set()
+                        self.invalid_assignments[idx].add((game_slot, conflicting_idx, conflicting_slot))
                     continue
+
+                # if constraints are violated
+                # is_valid, conflicting_event = self.constr(new_pr)
+    
+                # if (not is_valid):
+                #     # so we know that 'new_pr' violated some hard constraint, so we know that in the future if we ever get a sequence where we assign something to Mo9:00 and then the next leaf or all the leaves lead to an invalid solution once we start going through the rest of the assignments of that leaf, we know now never to expand that again since it leads to an invalid solution
+                #     # so first we need to store that invalid addition
+                #     # example, we assigned Mo9:00 and the assingment of Tu:930 dont work with it, we add that leaf to the our list of incompatibles
+                #     # we need to find what lead to the break, which node in the tree did it conflict with?
+                #     self.invalid_assignments.append((new_pr, conflicting_event))
+                #     print(f'invalid assignments  : {self.invalid_assignments} \n')
+                #     print(f'row: {min_row}')
+                #     print(f'slot: {game_slot}')
+
+                #     print(f"Conflict detected: New assignment {new_pr} conflicts with event {conflicting_event}")
+                #     continue
+                # self.assignment_history.append(game_slot)
+
+                
                 print(f'new pr  : {new_pr} \n')
                 # # Push into heap with the '*' count as priority
                 if not mut:
-                    self.fringe.append((-index, (new_pr,'?')))
+                    # self.fringe.append((-index, (new_pr,'?')))
+                    self.fringe.append((star_count, (new_pr,'?')))
+
                 else:
                     self.fringe.append((1, (new_pr,'?')))
                 # we also have to update the old dataset so we can do the calculation again
@@ -179,17 +215,82 @@ class OrTreeScheduler:
             for practice_slot in self.practice_slots.index:
                 new_pr = pr[:idx] + [practice_slot] + pr[idx+1:]
                 print(f'new pr  : {new_pr} \n')
-                # if constraints are violated
+                
+                # Check for specific conflicts at the current position
+                if idx in self.invalid_assignments:
+                    for invalid_slot, conflicting_idx, conflicting_slot in self.invalid_assignments[idx]:
+                        if game_slot == invalid_slot and pr[conflicting_idx] == conflicting_slot:
+                            # Conflict detected; skip this assignment
+                            continue
                 if (not self.constr(new_pr)):
+                    #     # we need to know what was violated
+                    # Identify the conflicting combination and log it
+                    conflict = self.find_conflict(new_pr)
+                    if conflict:
+                        if idx not in self.invalid_assignments:
+                            self.invalid_assignments[idx] = []
+                        self.invalid_assignments[idx].append(set(conflict))
                     continue
+
+                # # if constraints are violated
+                # is_valid, conflicting_event = self.constr(new_pr)
+    
+                # if (not is_valid):
+                #     # so we know that 'new_pr' violated some hard constraint, so we know that in the future if we ever get a sequence where we assign something to Mo9:00 and then the next leaf or all the leaves lead to an invalid solution once we start going through the rest of the assignments of that leaf, we know now never to expand that again since it leads to an invalid solution
+                #     # so first we need to store that invalid addition
+                #     # example, we assigned Mo9:00 and the assingment of Tu:930 dont work with it, we add that leaf to the our list of incompatibles
+                #     # we need to find what lead to the break, which node in the tree did it conflict with?
+                #     self.invalid_assignments.append((new_pr, conflicting_event))
+                #     print(f"Conflict detected: New assignment {new_pr} conflicts with event {conflicting_event}")
+                #     continue
+                # self.assignment_history.append(game_slot)
+                
+                
                 # # Push into heap with the '*' count as priority
                 if not mut:
-                    self.fringe.append((-index, (new_pr,'?')))
+                    # self.fringe.append((-index, (new_pr,'?')))
+                    self.fringe.append((star_count, (new_pr,'?')))
+
                 else:
                     self.fringe.append((1, (new_pr,'?')))
                 # we also have to update the old dataset so we can do the calculation again
             # now we gotta remove the highest index game we just did so it doesn't slot it again
         return True
+    
+    # def find_conflict(self, new_pr):
+ 
+
+
+    def find_conflict(self, new_pr, current_idx):
+        """
+        Identify the pair of assignments (current and prior) causing the conflict.
+
+        Parameters:
+            new_pr (list): Current partial schedule being checked.
+            current_idx (int): Index of the current slot being added.
+
+        Returns:
+            tuple: (conflicting_index, conflicting_slot) or None if no conflict is found.
+        """
+        current_slot = new_pr[current_idx]
+        for i, slot in enumerate(new_pr):
+            if i != current_idx and slot != '*':  # Skip empty or same index
+                # Temporarily test the constraint with both slots
+                test_pr = new_pr[:]
+                test_pr[i] = slot
+                test_pr[current_idx] = current_slot
+                if not self.constr(test_pr):
+                    return i, slot  # Return the conflicting index and slot
+        return None
+    
+    # def find_conflict(self, new_assignment):
+    #     """
+    #     Identify the node causing the conflict with the current assignment.
+    #     """
+    #     for prior_assignment in reversed(self.assignment_history):
+    #         if not self.constr((prior_assignment, new_assignment)):
+    #             return prior_assignment
+    #     return None
     def starterSlot(self, row):
         starterValue = 0
 
@@ -478,7 +579,7 @@ class OrTreeScheduler:
                 if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"specialcheck"):
                     print("Failed Special Check")
 
-                    return False   
+                    return False
                      
             if event_details["Type"] == "P" and ((event_details["Tier"] != 'U13T1S') or (event_details["Tier"] != 'U12T1S')):
                 if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"pcheck"):
