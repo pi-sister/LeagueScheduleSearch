@@ -108,6 +108,12 @@ class Constr:
                 overlapping_slots.extend(self.environment.overlaps(detail['Assigned'], detail['Type'], 'G'))
 
         return overlapping_slots
+    
+    def another_check_evening_div(self,event_type):
+        if event_type == 'G':
+            return self.env.not_evening_gslots()
+        
+        return self.env.not_evening_pslots()
 
 
     

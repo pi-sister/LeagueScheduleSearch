@@ -155,7 +155,7 @@ class OrTreeScheduler:
         # lowest_score = self.df_with_scores['Score'].iloc[index] # we get the lowest score here
         min_row = self.df_with_scores.loc[[self.df_with_scores['Score'].index[index]]] # here it gets the whole row of that lowest scroe
        
-        # availablle_slots = self.constr(pr, min_row.iloc[0])
+        availablle_slots = self.constr(pr, min_row.iloc[0])
 
         # for a_slot in availablle_slots:
         #     new_pr = pr[:idx] + [a_slot] + pr[idx+1:]
@@ -485,6 +485,9 @@ class OrTreeScheduler:
         # check for game/practice overlaps
         bad_slots.extend(self.constraints.check_game_practice_pair(tempSched.get_scheduled(), curr_row, curr_row['Type']))
 
+        # check for evening divs
+        bad_slots.extend(self.constraints.another_check_evening_div(curr_row['Type']))
+        
         available_slots = [slot for slot in available_slots if slot not in bad_slots]
 
         print(f"available slots: {available_slots}\n")

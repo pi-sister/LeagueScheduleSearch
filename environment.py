@@ -197,6 +197,14 @@ class Environment:
     def get_gslot_list(self):
         return self.__game_slots.index.tolist()
     
+    def not_evening_pslots(self):
+        matches = self.__practice_slots['Start'].apply(lambda x: pd.to_datetime('18:00', "%H:%M") > pd.to_datetime(x, "%H:%M"))
+        return self.__practice_slots[matches].index.to_list()
+
+    def not_evening_gslots(self):
+        matches = self.__game_slots['Start'].apply(lambda x: pd.to_datetime('18:00', "%H:%M") > pd.to_datetime(x, "%H:%M"))
+        return self.__game_slots[matches].index.to_list()
+    
     def overlaps(self, start_time_str, event_type, base_type):
         """
         Checks if two events overlap in time.
