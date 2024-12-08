@@ -132,6 +132,7 @@ class OrTreeScheduler:
         for index in range(len(self.df_with_scores)):
 
             if self.pushFringe(index, pr):
+            if self.pushFringe(index, pr):
                 return True
         return False
 
@@ -156,6 +157,7 @@ class OrTreeScheduler:
 
 
     def pushFringe(self, index, pr, mut = False):
+    def pushFringe(self, index, pr, mut = False):
         """
         Function to push to the fringe all possible state combinations. Used in part of altern function
 
@@ -167,6 +169,8 @@ class OrTreeScheduler:
 # NO the problem is when it tries to mutate. what's happening right now is it's very structured in that it needs the df to be ordered from lowest to highest and bases the index to assign off that. if the initally assigned index is higher than the lowest, it gets screwed up. So to solve that, you need to find a way to assing the lowest thing first but also be flexible incase a lowest thing wasn't assinged first
         min_row_label = self.df_with_scores['Score'].index[index]  # we get the corresponding lowest score's label 
         idx = self.events.index.get_loc(min_row_label) # here it gets the index of the lowest score
+        assigned_indices = {i for i, slot in enumerate(pr) if slot != '*'}
+
         assigned_indices = {i for i, slot in enumerate(pr) if slot != '*'}
 
         if idx in assigned_indices:
@@ -279,7 +283,7 @@ class OrTreeScheduler:
         timeConflictValue = 0
         if otherDivison != []:
             for value in row['Incompatible']:
-                timeConflictValue += 1
+                timeConflictValue += 3
         return timeConflictValue
 
 
