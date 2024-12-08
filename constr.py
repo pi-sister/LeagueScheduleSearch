@@ -100,7 +100,8 @@ class Constr:
             for _, detail in related_events.iterrows():
                 overlapping_slots.extend(self.environment.overlaps(detail['Assigned'], detail['Type'], 'P'))
         else:
-            matches = scheduled_events['Corresp_game'].apply(lambda x: event.name.startswith(x))
+            print(f"event index: {event.index}")
+            matches = scheduled_events['Corresp_game'].apply(lambda x: event.index.item().startswith(x))
 
             related_events = scheduled_events[matches]
             

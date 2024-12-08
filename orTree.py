@@ -156,30 +156,12 @@ class OrTreeScheduler:
         min_row = self.df_with_scores.loc[[self.df_with_scores['Score'].index[index]]] # here it gets the whole row of that lowest scroe
         star_count = pr.count('*')
 
-        # availablle_slots = self.constr(pr, min_row.iloc[0])
-
-        # for a_slot in availablle_slots:
-        #     new_pr = pr[:idx] + [a_slot] + pr[idx+1:]
-
-        #     print(f'new pr  : {new_pr} \n')
-
-        #     if not mut:
-        #         self.fringe.append((-index, (new_pr,'?')))
-        #     else:
-        #         self.fringe.append((1, (new_pr,'?')))
-
-        # return True
-
         #ok, now we have the min label and score, we need to say that we're first adding that to our schedule
         if (min_row['Type'].iloc[0] == "G"):
             for game_slot in self.game_slots.index:
                 new_pr = pr[:idx] + [game_slot] + pr[idx+1:]
                 # if constraints are violated
-                if (not self.constr(new_pr)):
-                    # so we know that 'new_pr' violated some hard constraint, so we know that in the future if we ever get a sequence where we assign something to Mo9:00 and then the next leaf or all the leaves lead to an invalid solution once we start going through the rest of the assignments of that leaf, we know now never to expand that again since it leads to an invalid solution
-                    # so first we need to store that invalid addition
-                    # example, we assigned Mo9:00 and the assingment of Tu:930 dont work with it, we add that leaf to the our list of incompatibles
-                    
+                if (not self.constr(new_pr, min_row)):
                     continue
                 print(f'new pr  : {new_pr} \n')
                 # # Push into heap with the '*' count as priority
@@ -195,7 +177,7 @@ class OrTreeScheduler:
                 new_pr = pr[:idx] + [practice_slot] + pr[idx+1:]
                 print(f'new pr  : {new_pr} \n')
                 # if constraints are violated
-                if (not self.constr(new_pr)):
+                if (not self.constr(new_pr, min_row)):
                     continue
                 # # Push into heap with the '*' count as priority
                 if not mut:
@@ -454,37 +436,37 @@ class OrTreeScheduler:
 
         print(f"\nCurrent sched list: {sched_list}")
 
-        print(f"Searching for: \n{curr_row.name}")
+        print(f"Searching for: \n{curr_row['Type'][0]}")
 
         # return all not maxed out games / practices
-        available_slots = tempSched.return_not_maxed(curr_row['Type']).index.to_list()
+        available_slots = tempSched.return_not_maxed(curr_row['Type'][0]).index.to_list()
         print(f"unmaxed slots: \n{available_slots}")
 
-        if curr_row['Tier'].startswith(('U13T1S', 'U12T1S')):
+        if curr_row['Tier'][0].startswith(('U13T1S', 'U12T1S')):
             if 'TU18:00' in available_slots:
                 return ['TU18:00']
             else:
                 return []
         # check if we need to worry about incompatible
         bad_slots = []
-        if curr_row["Incompatible"]:
-            bad_slots.extend(self.constraints.another_incompatible(tempSched.get_scheduled(), curr_row['Incompatible'], curr_row['Type']))
+        if curr_row["Incompatible"][0]:
+            bad_slots.extend(self.constraints.another_incompatible(tempSched.get_scheduled(), curr_row['Incompatible'][0], curr_row['Type'][0]))
             print(f'Bad slots after incompatible: {bad_slots}')
         
         # check for unwanted
-        if curr_row["Unwanted"]:
-            bad_slots.extend(curr_row['Unwanted'])
+        if curr_row["Unwanted"][0]:
+            bad_slots.extend(curr_row['Unwanted'][0])
 
         # check if we need to worry about u15+
-        if ((curr_row['Tier'].startswith(('U15', 'U16', 'U17','U19'))) and (curr_row['Type'] == 'G')):
+        if ((curr_row['Tier'][0].startswith(('U15', 'U16', 'U17','U19'))) and (curr_row['Type'][0] == 'G')):
             bad_slots.extend(self.constraints.avoid_u15_plus(tempSched.get_scheduled()))
             
         # check for special practice
-        if curr_row['Tier'].startswith(('U13T1', 'U12T1')):
+        if curr_row['Tier'][0].startswith(('U13T1', 'U12T1')):
             bad_slots.append('TU18:00')
         
         # check for game/practice overlaps
-        bad_slots.extend(self.constraints.check_game_practice_pair(tempSched.get_scheduled(), curr_row, curr_row['Type']))
+        bad_slots.extend(self.constraints.check_game_practice_pair(tempSched.get_scheduled(), curr_row, curr_row['Type'][0]))
 
         available_slots = [slot for slot in available_slots if slot not in bad_slots]
 
