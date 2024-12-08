@@ -222,34 +222,42 @@ class Environment:
             if start_time_str[:2] == 'MO':
                 return [start_time_str]
             elif start_time_str[:2] == 'TU':
-                matches = self.practice_slots['Start'].apply(lambda x: (abs(pd.to_datetime(start_time_str[2:], format = "%H:%M") - pd.to_datetime(x, format = "%H:%M")).seconds / 60) < 60)
+                matches = self.game_slots['Start'].apply(lambda x: (abs(pd.to_datetime(start_time_str[2:], format = "%H:%M") - pd.to_datetime(x, format = "%H:%M")).seconds / 60) < 60)
+
+                matching_games = self.game_slots[matches]
 
                 return self.game_slots[
                     (self.game_slots['Day'] == 'TU') & 
-                    (matches)
-                ].index.to_list().append(start_time_str)
+                    (self.game_slots.index.isin(matching_games.index))
+                ].index.to_list()
             else:
-                matches = self.practice_slots['Start'].apply(lambda x: (abs(pd.to_datetime(start_time_str[2:], format =  "%H:%M") - pd.to_datetime(x, format = "%H:%M")).seconds / 60) < 120)
+                matches = self.game_slots['Start'].apply(lambda x: (abs(pd.to_datetime(start_time_str[2:], format =  "%H:%M") - pd.to_datetime(x, format = "%H:%M")).seconds / 60) < 120)
+
+                matching_games = self.game_slots[matches]
 
                 return self.game_slots[
                     (self.game_slots['Day'] == 'MO') & 
-                    (matches)
-                ].index.to_list().append(start_time_str)
+                    (self.game_slots.index.isin(matching_games.index))
+                ].index.to_list()
         else:
             if start_time_str[:2] == 'MO':
                 matches = self.practice_slots['Start'].apply(lambda x: (abs(pd.to_datetime(start_time_str[2:],format= "%H:%M") - pd.to_datetime(x, format="%H:%M")).seconds / 60) < 120)
 
+                matching_practices = self.practice_slots[matches]
+
                 return self.practice_slots[
                     (self.practice_slots['Day'] == 'FR') & 
-                    (matches)
-                ].index.to_list().append(start_time_str)
+                    (self.practice_slots.index.isin(matching_practices.index))
+                ].index.to_list()
             else:
                 matches = self.practice_slots['Start'].apply(lambda x: (abs(pd.to_datetime(start_time_str[2:], format="%H:%M") - pd.to_datetime(x, format="%H:%M")).seconds / 60) < 60)
 
+                matching_practices = self.practice_slots[matches]
+
                 return self.practice_slots[
                     (self.practice_slots['Day'] == 'TU') & 
-                    (matches)
-                ].index.to_list().append(start_time_str)
+                    (self.practice_slots.index.isin(matching_practices.index))
+                ].index.to_list()
         return []
 
 class _PrivateParser:
