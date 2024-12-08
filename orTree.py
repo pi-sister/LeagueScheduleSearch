@@ -156,37 +156,27 @@ class OrTreeScheduler:
         min_row = self.df_with_scores.loc[[self.df_with_scores['Score'].index[index]]] # here it gets the whole row of that lowest scroe
         star_count = pr.count('*')
 
-        #ok, now we have the min label and score, we need to say that we're first adding that to our schedule
-        if (min_row['Type'].iloc[0] == "G"):
-            for game_slot in self.game_slots.index:
-                new_pr = pr[:idx] + [game_slot] + pr[idx+1:]
-                # if constraints are violated
-                if (not self.constr(new_pr, min_row)):
+        slots = self.constr(pr, self.events.iloc[idx])
+        for slot in slots:
+            new_pr = pr[:idx] + [slot] + pr[idx+1:]
+            # Push into heap with the '*' count as priority
+            if not mut:
+                if self.tempA:
+                    if self.tempA != slot:
+                        continue
+                if self.tempB:
+                    if self.tempB != slot:
+                        continue
+                self.fringe.append((star_count, (new_pr,'?')))
+                
+            else:
+                if self.tempA == slot:
                     continue
-                print(f'new pr  : {new_pr} \n')
-                # # Push into heap with the '*' count as priority
-                if not mut:
-                    self.fringe.append((star_count, (new_pr,'?')))
-                else:
-                    self.fringe.append((1, (new_pr,'?')))
-                # we also have to update the old dataset so we can do the calculation again
-                # now we gotta remove the highest index game we just did so it doesn't slot it again
+                self.fringe.append((star_count, (new_pr,'?')))
 
-        else:
-            for practice_slot in self.practice_slots.index:
-                new_pr = pr[:idx] + [practice_slot] + pr[idx+1:]
-                print(f'new pr  : {new_pr} \n')
-                # if constraints are violated
-                if (not self.constr(new_pr, min_row)):
-                    continue
-                # # Push into heap with the '*' count as priority
-                if not mut:
-                    self.fringe.append((star_count, (new_pr,'?')))
-                else:
-                    self.fringe.append((1, (new_pr,'?')))
-                # we also have to update the old dataset so we can do the calculation again
-            # now we gotta remove the highest index game we just did so it doesn't slot it again
         return True
+    
+
     def starterSlot(self, row):
         starterValue = 0
 
@@ -436,11 +426,11 @@ class OrTreeScheduler:
 
         print(f"\nCurrent sched list: {sched_list}")
 
-        print(f"Searching for: \n{curr_row['Type'][0]}")
+        print(f"Searching for: \n{curr_row}")
 
         # return all not maxed out games / practices
-        available_slots = tempSched.return_not_maxed(curr_row['Type'][0]).index.to_list()
-        print(f"unmaxed slots: \n{available_slots}")
+        available_slots = tempSched.return_not_maxed(curr_row['Type']).index.to_list()
+        print(f"unmaxed slots:{available_slots}")
 
         if curr_row['Tier'][0].startswith(('U13T1S', 'U12T1S')):
             if 'TU18:00' in available_slots:
@@ -449,13 +439,13 @@ class OrTreeScheduler:
                 return []
         # check if we need to worry about incompatible
         bad_slots = []
-        if curr_row["Incompatible"][0]:
+        if curr_row["Incompatible"]:
             bad_slots.extend(self.constraints.another_incompatible(tempSched.get_scheduled(), curr_row['Incompatible'][0], curr_row['Type'][0]))
             print(f'Bad slots after incompatible: {bad_slots}')
         
         # check for unwanted
-        if curr_row["Unwanted"][0]:
-            bad_slots.extend(curr_row['Unwanted'][0])
+        if curr_row["Unwanted"]:
+            bad_slots.extend(curr_row['Unwanted'])
 
         # check if we need to worry about u15+
         if ((curr_row['Tier'][0].startswith(('U15', 'U16', 'U17','U19'))) and (curr_row['Type'][0] == 'G')):
@@ -635,24 +625,16 @@ class OrTreeScheduler:
         return schedule.Schedule.list_to_schedule(sched_list, self.env)
 
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
 #     # Load CSV with the first column as the index
-#     # env = env('Jamie copy.txt', [1,0,1,0,10,10,10,10], verbose = 1)
-#     env = env('example.txt', [1,0,1,0,10,10,10,10], verbose = 1)
+    env = env('minnumber.txt', [1,0,1,0,10,10,10,10], verbose = 1)
 
+    constraints = Constr(env)
 
-#     # print(f'Preassignments: {env.preassigned_slots}')
-#     print(f'Events:\n {env.events.columns}')
-#     print(f'Practiceslots:\n {env.practice_slots}')
-#     print(f'Gameslots:\n {env.game_slots}')
+    scheduler = OrTreeScheduler(constraints, env)
 
-#     constraints = Constr(env)
-
-#     scheduler = OrTreeScheduler(constraints, env)
-
-#     # schedule1 = scheduler.generate_schedule().assigned
-#     schedule1 = scheduler.generate_schedule()
-#     print("schedule 1", schedule1)
+    schedule1 = scheduler.generate_schedule().assigned
+    print("schedule 1", schedule1)
 
     #schedule2 = scheduler.generate_schedule(schedule1).assigned
     #print("schedule 2", schedule2)
