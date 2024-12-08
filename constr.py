@@ -90,11 +90,11 @@ class Constr:
 
         if event_type == 'P':
 
-            if event['Corresp_game'] in scheduled_events.index:
-                related_events = scheduled_events.loc[[event['Corresp_game']]]
+            if event['Corresp_game'][0] in scheduled_events.index:
+                related_events = scheduled_events.loc[[event['Corresp_game'][0]]]
             else:
                 related_events = scheduled_events[
-                    (scheduled_events.index.str.startswith(event['Corresp_game']))
+                    (scheduled_events.index.str.startswith(event['Corresp_game'][0]))
                 ]
 
             for _, detail in related_events.iterrows():
@@ -112,9 +112,9 @@ class Constr:
     
     def another_check_evening_div(self,event_type):
         if event_type == 'G':
-            return self.env.not_evening_gslots()
+            return self.environment.not_evening_gslots()
         
-        return self.env.not_evening_pslots()
+        return self.environment.not_evening_pslots()
 
 
     
