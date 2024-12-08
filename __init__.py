@@ -7,7 +7,8 @@ import time
 
 if __name__ == "__main__":
     start_time = time.time()
-    env = Environment('CPSC433F24-LargeInput1.txt', [1,1,0,1,100,100,6,10], verbose = 1)
+    # env = Environment('minnumber.txt', [1,1,0,1,100,100,6,10], verbose = 1)
+    env = Environment('minnumber.txt', [1,1,0,1,100,100,0,10], verbose = 1)
     sched = Schedule(env)
     
     constraints = Constr(env)
