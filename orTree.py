@@ -75,10 +75,10 @@ class OrTreeScheduler:
 
         # populate local variables
         self.game_slots = env.game_slots
-        self.game_slots = self.game_slots.sort_values(by='Max', ascending=True)
+        # self.game_slots = self.game_slots.sort_values(by='Max', ascending=True)
 
         self.practice_slots = env.practice_slots
-        self.practice_slots = self.practice_slots.sort_values(by='Max', ascending=True)
+        # self.practice_slots = self.practice_slots.sort_values(by='Max', ascending=True)
 
         self.events = env.events
         # print(f"eventsss: {self.events}")
@@ -122,8 +122,8 @@ class OrTreeScheduler:
         """
         
         #regenerate and sort scores to always pick the lowest priority first
-        self.df_with_scores = self.score(self.df_with_scores).sort_values(by='Score')
-        print(f"SCORES!!!: {self.df_with_scores['Score']}")
+        # self.df_with_scores = self.score(self.df_with_scores).sort_values(by='Score')
+        # print(f"SCORES!!!: {self.df_with_scores['Score']}")
         # Attempt to generate new states
         for index in range(len(self.df_with_scores)):
 
@@ -202,37 +202,37 @@ class OrTreeScheduler:
             value += 1
         return value
     
-    def teamBusy(self, row, df): 
-        sameTeam = df[
-            (df['League'] == row['League']) &
-            (df['Div'] == row['Div']) &
-            (df['Tier'] == row['Tier'])]
-        # so we need to add 1 if our practice is schdeuled on moday anytime or on tuesday (not including 9am, 15:00,and 18:00)
-        excluded_times = ['TU9:00', 'TU15:00', 'TU18:00']
-        teamBusyValue = 0  
-        # we need to add 2 if the game is assigned on monday or tuesday at 9, 15:00, 18:00,, or there's a friday practice, or tuesday game
-        # we first need to get the team, it can either be w/o prc or with
-        # so we need compare that all three r the same
-        # ok, we get a df with the same team
-        # we need to check if the team has a practice on monday
-        # Split into game DataFrame and practice DataFrame
-        games_df = sameTeam[sameTeam['Type'] == 'G']
-        practices_df = sameTeam[sameTeam['Type'] == 'P']
-        if not practices_df.empty:
-            for _, row in practices_df.iterrows():
-                if row['Part_assign'] == "MO9:00":
-                    teamBusyValue += 1
-                if row['Part_assign'].startswith('TU') and row['Part_assign'] not in excluded_times:
-                    teamBusyValue += 1
-                if row['Part_assign'] in excluded_times:
-                    teamBusyValue += 2
-                if row['Part_assign'].startswith("FR"):
-                    teamBusyValue += 2
-        if not games_df.empty:
-            for _, row in games_df.iterrows():
-                if row['Part_assign'].startswith("MO") or row['Part_assign'].startswith("MO"):
-                    teamBusyValue += 2
-        return teamBusyValue
+    # def teamBusy(self, row, df): 
+    #     sameTeam = df[
+    #         (df['League'] == row['League']) &
+    #         (df['Div'] == row['Div']) &
+    #         (df['Tier'] == row['Tier'])]
+    #     # so we need to add 1 if our practice is schdeuled on moday anytime or on tuesday (not including 9am, 15:00,and 18:00)
+    #     excluded_times = ['TU9:00', 'TU15:00', 'TU18:00']
+    #     teamBusyValue = 0  
+    #     # we need to add 2 if the game is assigned on monday or tuesday at 9, 15:00, 18:00,, or there's a friday practice, or tuesday game
+    #     # we first need to get the team, it can either be w/o prc or with
+    #     # so we need compare that all three r the same
+    #     # ok, we get a df with the same team
+    #     # we need to check if the team has a practice on monday
+    #     # Split into game DataFrame and practice DataFrame
+    #     games_df = sameTeam[sameTeam['Type'] == 'G']
+    #     practices_df = sameTeam[sameTeam['Type'] == 'P']
+    #     if not practices_df.empty:
+    #         for _, row in practices_df.iterrows():
+    #             if row['Part_assign'] == "MO9:00":
+    #                 teamBusyValue += 1
+    #             if row['Part_assign'].startswith('TU') and row['Part_assign'] not in excluded_times:
+    #                 teamBusyValue += 1
+    #             if row['Part_assign'] in excluded_times:
+    #                 teamBusyValue += 2
+    #             if row['Part_assign'].startswith("FR"):
+    #                 teamBusyValue += 2
+    #     if not games_df.empty:
+    #         for _, row in games_df.iterrows():
+    #             if row['Part_assign'].startswith("MO") or row['Part_assign'].startswith("MO"):
+    #                 teamBusyValue += 2
+    #     return teamBusyValue
 
     def tierBusy(self, row, sameTeam):
         # we will be given a game, only games, and have to see if it's in the tiers U15,16,17,19 and if it is, then we add a penalty
@@ -286,13 +286,13 @@ class OrTreeScheduler:
             # print(f"Checking Row: {row[['League','Tier','Div']]}\n")
             starterVal = self.starterSlot(row)
             # print(f"Score starts as {starterVal}")
-            # disallowedSlotsVal = self.disallowedSlots(row)
-            teamBusyVal = self.teamBusy(row, df_reset)
+            disallowedSlotsVal = self.disallowedSlots(row)
+            # teamBusyVal = self.teamBusy(row, df_reset)
             tierBusyVal = self.tierBusy(row, df_reset)
             timeConflictsVal = self.timeConflicts(row) #math
             u13Val = self.u13(row)
             # scoreVal = starterVal - disallowedSlotsVal - teamBusyVal - tierBusyVal - timeConflictsVal
-            scoreVal = starterVal - teamBusyVal - tierBusyVal - timeConflictsVal - u13Val
+            scoreVal = starterVal - disallowedSlotsVal - tierBusyVal - timeConflictsVal
             # print(f"Score is now {scoreVal}\n")
             scores.append(scoreVal)  # Append the score to the list
         
