@@ -91,7 +91,7 @@ class Constr:
             - Checks for time overlaps between a practice booking and it's corresponding game
         """
         if mode == "regcheck":
-            if not curr_tier.startswith(('U15', 'U16', 'U17', 'U18', 'U19')):
+            if not curr_tier.startswith(('U15', 'U16', 'U17','U19')):
                 return True
 
             if curr_time == "*":
