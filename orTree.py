@@ -432,7 +432,7 @@ class OrTreeScheduler:
         available_slots = tempSched.return_not_maxed(curr_row['Type']).index.to_list()
         print(f"unmaxed slots:{available_slots}")
 
-        if curr_row['Tier'][0].startswith(('U13T1S', 'U12T1S')):
+        if curr_row['Tier'].startswith(('U13T1S', 'U12T1S')):
             if 'TU18:00' in available_slots:
                 return ['TU18:00']
             else:
@@ -440,7 +440,7 @@ class OrTreeScheduler:
         # check if we need to worry about incompatible
         bad_slots = []
         if curr_row["Incompatible"]:
-            bad_slots.extend(self.constraints.another_incompatible(tempSched.get_scheduled(), curr_row['Incompatible'][0], curr_row['Type'][0]))
+            bad_slots.extend(self.constraints.another_incompatible(tempSched.get_scheduled(), curr_row['Incompatible'], curr_row['Type']))
             print(f'Bad slots after incompatible: {bad_slots}')
         
         # check for unwanted
@@ -448,19 +448,19 @@ class OrTreeScheduler:
             bad_slots.extend(curr_row['Unwanted'])
 
         # check if we need to worry about u15+
-        if ((curr_row['Tier'][0].startswith(('U15', 'U16', 'U17','U19'))) and (curr_row['Type'][0] == 'G')):
+        if ((curr_row['Tier'].startswith(('U15', 'U16', 'U17','U19'))) and (curr_row['Type'] == 'G')):
             bad_slots.extend(self.constraints.avoid_u15_plus(tempSched.get_scheduled()))
             
         # check for special practice
-        if curr_row['Tier'][0].startswith(('U13T1', 'U12T1')):
+        if curr_row['Tier'].startswith(('U13T1', 'U12T1')):
             bad_slots.append('TU18:00')
         
         # check for game/practice overlaps
-        bad_slots.extend(self.constraints.check_game_practice_pair(tempSched.get_scheduled(), curr_row, curr_row['Type'][0]))
+        bad_slots.extend(self.constraints.check_game_practice_pair(tempSched.get_scheduled(), curr_row, curr_row['Type']))
 
         # check for evening divs
-        if curr_row['Div'][0].startswith('9'):
-            bad_slots.extend(self.constraints.another_check_evening_div(curr_row['Type'][0]))
+        if curr_row['Div'].startswith('9'):
+            bad_slots.extend(self.constraints.another_check_evening_div(curr_row['Type']))
         
         available_slots = [slot for slot in available_slots if slot not in bad_slots]
 
