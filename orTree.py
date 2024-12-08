@@ -468,6 +468,9 @@ class OrTreeScheduler:
         # check for game/practice overlaps
         bad_slots.extend(self.constraints.check_game_practice_pair(tempSched.get_scheduled(), curr_row, curr_row['Type'][0]))
 
+        # check for evening divs
+        bad_slots.extend(self.constraints.another_check_evening_div(curr_row['Type']))
+        
         available_slots = [slot for slot in available_slots if slot not in bad_slots]
 
         print(f"available slots: {available_slots}\n")
