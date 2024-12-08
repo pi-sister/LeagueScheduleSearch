@@ -34,6 +34,8 @@ class Constr:
 
         self.evening = datetime.strptime("18:00", "%H:%M").time()
 
+        self.environment = env
+
         self.__u13t1s = env.events["Tier"].isin(["U13T1"]).any()
         self.__u12t1s = env.events["Tier"].isin(["U12T1"]).any()
 
@@ -55,7 +57,59 @@ class Constr:
         """
         self.u15_plus_slots = set()
         self.incompatible_checker = set()
+
+    def another_incompatible(self, scheduled_events, incompatible_list, event_type):
+
+        valid_indices = [index for index in incompatible_list if index in scheduled_events.index]
+
+        relevant_events = scheduled_events.loc[valid_indices, ['Assigned', 'Type']]
+
+        overlapping_slots = []
+
+        for _, detail in relevant_events.iterrows():
+            overlapping_slots.extend(self.environment.overlaps(detail['Assigned'], detail['Type'], event_type))
+
+        return overlapping_slots
+
+    def avoid_u15_plus(self, scheduled_events):
+        related_events = scheduled_events[
+                    (scheduled_events['Tier'].str.startswith(('U15', 'U16', 'U17','U19'))) &
+                    (scheduled_events['Type'] == 'G')
+                ]
+        
+        overlapping_slots = []
+        
+        for _, detail in related_events.iterrows():
+            overlapping_slots.extend(self.environment.overlaps(detail['Assigned'], detail['Type'], 'G'))
+
+        return overlapping_slots
     
+    def check_game_practice_pair(self, scheduled_events, event, event_type):
+
+        overlapping_slots = []
+
+        if event_type == 'P':
+
+            if event['Corresp_game'] in scheduled_events.index:
+                related_events = scheduled_events.loc[[event['Corresp_game']]]
+            else:
+                related_events = scheduled_events[
+                    (scheduled_events.index.str.startswith(event['Corresp_game']))
+                ]
+
+            for _, detail in related_events.iterrows():
+                overlapping_slots.extend(self.environment.overlaps(detail['Assigned'], detail['Type'], 'P'))
+        else:
+            matches = scheduled_events['Corresp_game'].apply(lambda x: event.name.startswith(x))
+
+            related_events = scheduled_events[matches]
+            
+            for _, detail in related_events.iterrows():
+                overlapping_slots.extend(self.environment.overlaps(detail['Assigned'], detail['Type'], 'G'))
+
+        return overlapping_slots
+
+
     
     def incompatible(self, event_assignments, incompatible_list, event_type, event_time, event_id):
         """

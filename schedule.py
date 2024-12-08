@@ -208,7 +208,13 @@ class Schedule:
             
         else:
             raise ValueError("Invalid slot type. Must be 'G' or 'P'.")
-        
+
+    def return_not_maxed(self, slot_type):
+        if slot_type =='G':
+            return self.gslots[self.gslots['count'] < self.gslots['Max']]
+        else:
+            return self.pslots[self.pslots['count'] < self.pslots['Max']]
+
     def update_counters(self):
         """
         Update the game or practice slot counter based on the given slot and slot type.
