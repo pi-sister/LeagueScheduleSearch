@@ -198,11 +198,11 @@ class Environment:
         return self.__game_slots.index.tolist()
     
     def not_evening_pslots(self):
-        matches = self.__practice_slots['Start'].apply(lambda x: pd.to_datetime('18:00', "%H:%M") > pd.to_datetime(x, "%H:%M"))
+        matches = self.__practice_slots['Start'].apply(lambda x: pd.to_datetime('18:00', format = "%H:%M") > pd.to_datetime(x, format = "%H:%M"))
         return self.__practice_slots[matches].index.to_list()
 
     def not_evening_gslots(self):
-        matches = self.__game_slots['Start'].apply(lambda x: pd.to_datetime('18:00', "%H:%M") > pd.to_datetime(x, "%H:%M"))
+        matches = self.__game_slots['Start'].apply(lambda x: pd.to_datetime('18:00', format ="%H:%M") > pd.to_datetime(x, format ="%H:%M"))
         return self.__game_slots[matches].index.to_list()
     
     def overlaps(self, start_time_str, event_type, base_type):
@@ -222,14 +222,14 @@ class Environment:
             if start_time_str[:2] == 'MO':
                 return [start_time_str]
             elif start_time_str[:2] == 'TU':
-                matches = self.practice_slots['Start'].apply(lambda x: (abs(pd.to_datetime(start_time_str[2:], "%H:%M") - pd.to_datetime(x, "%H:%M")).seconds / 60) < 60)
+                matches = self.practice_slots['Start'].apply(lambda x: (abs(pd.to_datetime(start_time_str[2:], format = "%H:%M") - pd.to_datetime(x, format = "%H:%M")).seconds / 60) < 60)
 
                 return self.game_slots[
                     (self.game_slots['Day'] == 'TU') & 
                     (matches)
                 ].index.to_list().append(start_time_str)
             else:
-                matches = self.practice_slots['Start'].apply(lambda x: (abs(pd.to_datetime(start_time_str[2:], "%H:%M") - pd.to_datetime(x, "%H:%M")).seconds / 60) < 120)
+                matches = self.practice_slots['Start'].apply(lambda x: (abs(pd.to_datetime(start_time_str[2:], format =  "%H:%M") - pd.to_datetime(x, format = "%H:%M")).seconds / 60) < 120)
 
                 return self.game_slots[
                     (self.game_slots['Day'] == 'MO') & 
@@ -237,14 +237,14 @@ class Environment:
                 ].index.to_list().append(start_time_str)
         else:
             if start_time_str[:2] == 'MO':
-                matches = self.practice_slots['Start'].apply(lambda x: (abs(pd.to_datetime(start_time_str[2:], "%H:%M") - pd.to_datetime(x, "%H:%M")).seconds / 60) < 120)
+                matches = self.practice_slots['Start'].apply(lambda x: (abs(pd.to_datetime(start_time_str[2:],format= "%H:%M") - pd.to_datetime(x, format="%H:%M")).seconds / 60) < 120)
 
                 return self.practice_slots[
                     (self.practice_slots['Day'] == 'FR') & 
                     (matches)
                 ].index.to_list().append(start_time_str)
             else:
-                matches = self.practice_slots['Start'].apply(lambda x: (abs(pd.to_datetime(start_time_str[2:], "%H:%M") - pd.to_datetime(x, "%H:%M")).seconds / 60) < 60)
+                matches = self.practice_slots['Start'].apply(lambda x: (abs(pd.to_datetime(start_time_str[2:], format="%H:%M") - pd.to_datetime(x, format="%H:%M")).seconds / 60) < 60)
 
                 return self.practice_slots[
                     (self.practice_slots['Day'] == 'TU') & 
