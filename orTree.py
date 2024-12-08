@@ -440,7 +440,7 @@ class OrTreeScheduler:
         # check if we need to worry about incompatible
         bad_slots = []
         if curr_row["Incompatible"]:
-            bad_slots.extend(self.constraints.another_incompatible(tempSched.get_scheduled(), curr_row['Incompatible'], curr_row['Type']))
+            bad_slots.extend(self.constraints.another_incompatible(tempSched.get_scheduled(), curr_row['Incompatible'], curr_row['Type'][0]))
             print(f'Bad slots after incompatible: {bad_slots}')
         
         # check for unwanted
