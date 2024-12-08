@@ -125,11 +125,12 @@ class OrTreeScheduler:
         
         #regenerate and sort scores to always pick the lowest priority first
         self.df_with_scores = self.score(self.df_with_scores).sort_values(by='Score')
+        print(f"SCORES!!!: {self.df_with_scores['Score']}")
+
         # Attempt to generate new states
         for index in range(len(self.df_with_scores)):
-            assigned_indices = {i for i, slot in enumerate(pr) if slot != '*'}
 
-            if self.pushFringe(index, pr, assigned_indices):
+            if self.pushFringe(index, pr):
                 return True
         return False
 
@@ -153,7 +154,7 @@ class OrTreeScheduler:
         return False
 
 
-    def pushFringe(self, index, pr, assigned_indices, mut = False):
+    def pushFringe(self, index, pr, mut = False):
         """
         Function to push to the fringe all possible state combinations. Used in part of altern function
 
@@ -165,6 +166,8 @@ class OrTreeScheduler:
 # NO the problem is when it tries to mutate. what's happening right now is it's very structured in that it needs the df to be ordered from lowest to highest and bases the index to assign off that. if the initally assigned index is higher than the lowest, it gets screwed up. So to solve that, you need to find a way to assing the lowest thing first but also be flexible incase a lowest thing wasn't assinged first
         min_row_label = self.df_with_scores['Score'].index[index]  # we get the corresponding lowest score's label 
         idx = self.events.index.get_loc(min_row_label) # here it gets the index of the lowest score
+        assigned_indices = {i for i, slot in enumerate(pr) if slot != '*'}
+
         if idx in assigned_indices:
             return False
        # ok so instead of doing what's down below, we want to first get the game/practice with the highest constraints (lowest num)
@@ -228,30 +231,30 @@ class OrTreeScheduler:
             # self.df_with_scores_changing = self.df_with_scores_changing.drop(min_row_label)
         return True
     def starterSlot(self, row):
-        # if row['Div'] == "09" and row['Type'] == "G":
-        #     starterValue = 4 
-        # elif row['Div'] == "09" and row['Type'] == "P":
-        #     starterValue = 6 
-        # elif row['Div'] != "09" and row['Type'] == "G":
-        #     starterValue = 20 
-        # elif row['Div'] != "09" and row['Type'] == "P":
-        #     starterValue = 31 
-        # else:
-        #     starterValue = 0
-        # return starterValue
-        starter_values = {
-            ("09", "G"): 4, 
-            ("09", "P"): 6, 
-            ("!09", "G"): 20, 
-            ("!09", "P"): 31
-        }
-        key = (row['Div'] if row['Div'] == "09" else "!09", row['Type'])
-        return starter_values.get(key, 0)
+        if row['Div'] == "09" and row['Type'] == "G":
+            starterValue = 4 
+        elif row['Div'] == "09" and row['Type'] == "P":
+            starterValue = 6 
+        elif row['Div'] != "09" and row['Type'] == "G":
+            starterValue = 20 
+        elif row['Div'] != "09" and row['Type'] == "P":
+            starterValue = 31 
+        else:
+            starterValue = 0
+        return starterValue
+        # starter_values = {
+        #     ("09", "G"): 4, 
+        #     ("09", "P"): 6, 
+        #     ("!09", "G"): 20, 
+        #     ("!09", "P"): 31
+        # }
+        # key = (row['Div'] if row['Div'] == "09" else "!09", row['Type'])
+        # return starter_values.get(key, 0)
     
     def disallowedSlots(self, row):
         # so on every row (every specifc game), we get that games name and we also have a list of invalid assignments. if a game can go into a specifc invalid time slot, we add a penalty
         value = 0
-        for i in row['Label']:
+        for i in row['Unwanted']:
             value += 1
         return value
     def teamBusy(self, row, df): 
@@ -303,7 +306,7 @@ class OrTreeScheduler:
         timeConflictValue = 0
         if otherDivison != []:
             for value in row['Incompatible']:
-                timeConflictValue += 1
+                timeConflictValue += 3
         return timeConflictValue
 
 
@@ -328,10 +331,12 @@ class OrTreeScheduler:
         for _, row in df_reset.iterrows():
             starterVal = self.starterSlot(row)
             disallowedSlotsVal = self.disallowedSlots(row)
-            teamBusyVal = self.teamBusy(row, df_reset)
-            tierBusyVal = self.tierBusy(row, df_reset)
+            # teamBusyVal = self.teamBusy(row, df_reset)
+            # tierBusyVal = self.tierBusy(row, df_reset)
             timeConflictsVal = self.timeConflicts(row) #math
-            scoreVal = starterVal - disallowedSlotsVal - teamBusyVal - tierBusyVal - timeConflictsVal
+            # scoreVal = starterVal - disallowedSlotsVal - teamBusyVal - tierBusyVal - timeConflictsVal
+            scoreVal = starterVal - disallowedSlotsVal - timeConflictsVal
+
             scores.append(scoreVal)  # Append the score to the list
         
         # Add the scores as a new column to the DataFrame
