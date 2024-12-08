@@ -429,7 +429,7 @@ class OrTreeScheduler:
         print(f"Searching for: \n{curr_row}")
 
         # return all not maxed out games / practices
-        available_slots = tempSched.return_not_maxed(curr_row['Type']).index.to_list()
+        available_slots = tempSched.return_not_maxed(curr_row['Type'][0]).index.to_list()
         print(f"unmaxed slots:{available_slots}")
 
         if curr_row['Tier'][0].startswith(('U13T1S', 'U12T1S')):
@@ -440,7 +440,7 @@ class OrTreeScheduler:
         # check if we need to worry about incompatible
         bad_slots = []
         if curr_row["Incompatible"]:
-            bad_slots.extend(self.constraints.another_incompatible(tempSched.get_scheduled(), curr_row['Incompatible'][0], curr_row['Type'][0]))
+            bad_slots.extend(self.constraints.another_incompatible(tempSched.get_scheduled(), curr_row['Incompatible'], curr_row['Type'][0]))
             print(f'Bad slots after incompatible: {bad_slots}')
         
         # check for unwanted

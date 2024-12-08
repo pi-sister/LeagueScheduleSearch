@@ -67,7 +67,10 @@ class Constr:
         overlapping_slots = []
 
         for _, detail in relevant_events.iterrows():
-            overlapping_slots.extend(self.environment.overlaps(detail['Assigned'], detail['Type'], event_type))
+            overlaps = self.environment.overlaps(detail['Assigned'], detail['Type'], event_type)
+            if overlaps:
+                overlapping_slots.extend(overlaps)
+            # overlapping_slots.extend(self.environment.overlaps(detail['Assigned'], detail['Type'], event_type))
 
         return overlapping_slots
 
@@ -80,7 +83,10 @@ class Constr:
         overlapping_slots = []
         
         for _, detail in related_events.iterrows():
-            overlapping_slots.extend(self.environment.overlaps(detail['Assigned'], detail['Type'], 'G'))
+            overlaps = self.environment.overlaps(detail['Assigned'], detail['Type'], 'G')
+            if overlaps:
+                overlapping_slots.extend(overlaps)
+            # overlapping_slots.extend(self.environment.overlaps(detail['Assigned'], detail['Type'], 'G'))
 
         return overlapping_slots
     
@@ -98,14 +104,20 @@ class Constr:
                 ]
 
             for _, detail in related_events.iterrows():
-                overlapping_slots.extend(self.environment.overlaps(detail['Assigned'], detail['Type'], 'P'))
+                # overlapping_slots.extend(self.environment.overlaps(detail['Assigned'], detail['Type'], 'P'))
+                overlaps = self.environment.overlaps(detail['Assigned'], detail['Type'], 'P')
+                if overlaps:  # Check if overlaps is not None
+                    overlapping_slots.extend(overlaps)
         else:
             matches = scheduled_events['Corresp_game'].apply(lambda x: event.name.startswith(x) if x else False)
 
             related_events = scheduled_events[matches]
             
             for _, detail in related_events.iterrows():
-                overlapping_slots.extend(self.environment.overlaps(detail['Assigned'], detail['Type'], 'G'))
+                # overlapping_slots.extend(self.environment.overlaps(detail['Assigned'], detail['Type'], 'G'))
+                overlaps = self.environment.overlaps(detail['Assigned'], detail['Type'], 'G')
+                if overlaps:  # Check if overlaps is not None
+                    overlapping_slots.extend(overlaps)
 
         return overlapping_slots
     
