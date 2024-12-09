@@ -3,6 +3,7 @@
 from heapq import heapify, heappush, heappop, nlargest
 import schedule
 from orTree import OrTreeScheduler
+from tqdm import tqdm
 import random
 
 #note: the OrtreeScheduler needs to give me a schedule of type Schedule so 
@@ -159,7 +160,7 @@ class ScheduleProcessor:
             a good enough answer, and the best one we have
         """
         
-        for i in range(iterNum):
+        for i in tqdm(range(iterNum)):
             self.chooseAction(limitOfSchedules)
         return max(self.heap)[1]
             
