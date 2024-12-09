@@ -102,7 +102,7 @@ class OrTreeScheduler:
         self.df_with_scores = self.df_with_scores.sort_values(by='Score', ascending=True)
     
         # Get the top %30 of rows (top 56 rows)
-        self.top_30_df = self.df_with_scores.head(56)
+        # self.top_30_df = self.df_with_scores.head(56)
     def starterSlot(self, row):
         """
         Determine the starter slot value based on the division and type of the row.
@@ -279,10 +279,16 @@ class OrTreeScheduler:
             if not mut:
                 push = False
                 if self.tempA or self.tempB:
-                    if self.tempA and self.tempA[idx] == slot:
-                        push = True
-                    if self.tempB and self.tempB[idx] == slot:
-                        push = True
+                    if index < 30: # if the game/prac we're working with is within the top 30 most constrained items, always assign it to the best schedules value
+                        if self.tempA and self.tempA[idx] == slot:
+                            push = True
+                        else:
+                            push = False
+                    else:
+                        if self.tempA and self.tempA[idx] == slot:
+                            push = True
+                        if self.tempB and self.tempB[idx] == slot:
+                            push = True
                 else:
                     push = True
                 if push:

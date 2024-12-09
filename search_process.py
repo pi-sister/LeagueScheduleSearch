@@ -118,7 +118,11 @@ class ScheduleProcessor:
         fitnesses = [-fitness for fitness, schedule in current_state]
         schedules = [schedule for fitness, schedule in current_state]
 
-        
+        # Sort schedules and fitnesses together based on fitness (ascending order)
+        sorted_state = sorted(current_state, key=lambda x: x[0])  # Sort by fitness (first element of the tuple)
+        # Extract schedules after sorting
+        sorted_schedules = [schedule for _, schedule in sorted_state]
+
         # Calculate the total fitness of all schedules in the current state
         total_fitness = sum(fitness for fitness in fitnesses)
         if total_fitness == 0:
@@ -143,8 +147,11 @@ class ScheduleProcessor:
     
         elif transition == 'Crossover':
             # select two schedules for crossover based on the calculated probabilities
-            selected_schedules = random.choices(schedules, weights=normalized_probabilities, k=2)
-            schedule = self.scheduler.generate_schedule(selected_schedules[0], selected_schedules[1])
+            # selected_schedules = random.choices(schedules, weights=normalized_probabilities, k=2)
+            selected_schedules = random.choices(schedules, weights=normalized_probabilities, k=1)
+            best_schedule = sorted_schedules[0]
+
+            schedule = self.scheduler.generate_schedule(best_schedule, selected_schedules[0])
             
         if not schedule:
             return 0
