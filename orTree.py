@@ -485,6 +485,9 @@ class OrTreeScheduler:
                 start_time = time.time()
                 self.df_with_scores = self.score(self.events)
                 self.df_with_scores = self.df_with_scores.sort_values(by='Score', ascending=True)
+
+                self.tempA = []
+                self.tempB = []
                 self.fringe = []
                 start_time = time.time()
 
