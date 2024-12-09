@@ -140,8 +140,8 @@ class Schedule:
         
         df = pd.concat([g_df, p_df])
         
-        min = self.min_filled(self.gslots, env.pen_notpaired, verbose)
-        min += self.min_filled(self.pslots, env.pen_notpaired, verbose)
+        min = self.min_filled(self.gslots, env.pen_gamemin, verbose)
+        min += self.min_filled(self.pslots, env.pen_pracmin, verbose)
         min *= env.w_minfilled
         
         pref = self.pref_penalty(df, verbose)
@@ -210,6 +210,15 @@ class Schedule:
             raise ValueError("Invalid slot type. Must be 'G' or 'P'.")
 
     def return_not_maxed(self, slot_type):
+        """
+        Check to see if a particular slot type has been maxed out
+
+        Args:
+            the slot type. P or G
+
+        Returns:
+            Boolean True or False
+        """
         if slot_type =='G':
             return self.gslots[self.gslots['count'] < self.gslots['Max']]
         else:
@@ -405,4 +414,3 @@ class Schedule:
         sched.assign(lst)
         return sched
 
-        
