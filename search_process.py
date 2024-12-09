@@ -39,7 +39,12 @@ class ScheduleProcessor:
             limitOfSchedules (int): The maximum allowable number of schedules in the heap.
 
         """
-        if len(self.heap) <= 1000:
+        populate_for = 50
+        while populate_for > limitOfSchedules:
+            populate_for -= 1
+            print("too many schedules to be added")
+
+        if len(self.heap) <= populate_for:
             self.fwert(0)  # add new random schedule
             print(self.heap)
 
