@@ -39,7 +39,7 @@ class ScheduleProcessor:
             limitOfSchedules (int): The maximum allowable number of schedules in the heap.
 
         """
-        if len(self.heap) <= 4:
+        if len(self.heap) <= 1000:
             self.fwert(0)  # add new random schedule
             print(self.heap)
 
@@ -90,9 +90,7 @@ class ScheduleProcessor:
                 # Remove the worst schedule
                 # Remove the largest value in the heap (the worst schedule in a min heap).
                 # Remove the largest value in the heap (the worst schedule in a min heap).
-                n_largest = nlargest(1, self.heap)[0]
-                self.heap.remove(n_largest)  # Remove by value
-                heapify(self.heap)  # Convert the list into a valid heap structure
+                heappop(self.heap)
                 # Remove the worst by E_value
 
         
