@@ -584,6 +584,7 @@ class OrTreeScheduler:
 
             self.randomNumbers = list(range(self.length))
             sched_list = self.mutate(pr0) 
+            
         else:
             sched_list = self.search(pr0)
         

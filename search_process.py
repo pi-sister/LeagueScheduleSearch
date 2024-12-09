@@ -4,6 +4,7 @@ from heapq import heapify, heappush, heappop, nlargest
 import schedule
 from orTree import OrTreeScheduler
 import random
+from tqdm import tqdm
 
 #note: the OrtreeScheduler needs to give me a schedule of type Schedule so 
 #that i can call set_Eval on it.
@@ -47,10 +48,12 @@ class ScheduleProcessor:
             print(self.heap)
 
         else:
-            newTuple = self.f_select(self.heap)
-            # new schedule from mutation or crossover   
-            if newTuple != 0:
-                heappush(self.heap, newTuple)
+            self.fwert(0)  # add new random schedule
+
+            # newTuple = self.f_select(self.heap)
+            # # new schedule from mutation or crossover   
+            # if newTuple != 0:
+            #     heappush(self.heap, newTuple)
             # if the generated tuple is new add it to the heap
             print(self.heap)
 
@@ -160,7 +163,7 @@ class ScheduleProcessor:
             a good enough answer, and the best one we have
         """
         
-        for i in range(iterNum):
+        for i in tqdm(range(iterNum)):
             self.chooseAction(limitOfSchedules)
         return max(self.heap)[1]
             
