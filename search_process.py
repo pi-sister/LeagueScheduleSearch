@@ -3,7 +3,6 @@
 from heapq import heapify, heappush, heappop, nlargest
 import schedule
 from orTree import OrTreeScheduler
-from tqdm import tqdm
 import random
 
 #note: the OrtreeScheduler needs to give me a schedule of type Schedule so 
@@ -48,11 +47,10 @@ class ScheduleProcessor:
             print(self.heap)
 
         else:
-            
-            self.fwert(0) 
-            # # new schedule from mutation or crossover   
-            # if newTuple != NoneType:
-                # heappush(self.heap, newTuple)
+            newTuple = self.f_select(self.heap)
+            # new schedule from mutation or crossover   
+            if newTuple != 0:
+                heappush(self.heap, newTuple)
             # if the generated tuple is new add it to the heap
             print(self.heap)
 
@@ -73,6 +71,8 @@ class ScheduleProcessor:
                 # generate a random new schedule
                 newSchedule = self.scheduler.generate_schedule()
                 # Get the value of it from set_Eval
+                # if newSchedule == []:
+                #     return "failed hard constraints"
                 fitness = newSchedule.set_Eval()
                 if newSchedule.eval is None:  # Adjust this to the actual attribute name
                     newSchedule.eval = fitness
@@ -160,7 +160,7 @@ class ScheduleProcessor:
             a good enough answer, and the best one we have
         """
         
-        for i in tqdm(range(iterNum)):
+        for i in range(iterNum):
             self.chooseAction(limitOfSchedules)
         return max(self.heap)[1]
             

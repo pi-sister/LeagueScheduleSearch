@@ -92,6 +92,7 @@ class OrTreeScheduler:
         self.constraints = constraints
         self.env = env
         self.length = env.event_length()
+
         self.fringe = []
         self.starter_slots = env.preassigned_slots
         
@@ -530,8 +531,12 @@ class OrTreeScheduler:
             # back to here and select another random number if it doesn't produce any valid solutions.)
             rand = random.choice(self.randomNumbers)
             self.randomNumbers.remove(rand)
+            # so we get the index value of the game in the df, but we actually need the index of that game in the priority list
+            rand_row_label = self.events.index[rand]  # we get the corresponding lowest score's label 
+            idx = self.df_with_scores.index.get_loc(rand_row_label) # here it gets the index of the lowest score
+
             # populate the fringe with our initial nodes of all the possible combos our mutation can be.
-            self.pushFringe(rand, pr0, True)
+            self.pushFringe(idx, pr0, True)
 
             prMut = None
             while not prMut:
@@ -581,6 +586,7 @@ class OrTreeScheduler:
             sched_list = self.mutate(pr0) 
         else:
             sched_list = self.search(pr0)
+        
 
         # return the found schedule
         print(f'Final Sched: {sched_list}')
