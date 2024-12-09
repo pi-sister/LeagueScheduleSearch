@@ -48,12 +48,12 @@ class ScheduleProcessor:
             print(self.heap)
 
         else:
-            self.fwert(0)  # add new random schedule
+            # self.fwert(0)  # add new random schedule
 
-            # newTuple = self.f_select(self.heap)
-            # # new schedule from mutation or crossover   
-            # if newTuple != 0:
-            #     heappush(self.heap, newTuple)
+            newTuple = self.f_select(self.heap)
+            # new schedule from mutation or crossover   
+            if newTuple != 0:
+                heappush(self.heap, newTuple)
             # if the generated tuple is new add it to the heap
             print(self.heap)
 
