@@ -185,6 +185,18 @@ class OrTreeScheduler:
     
 
     def starterSlot(self, row):
+        """
+        Determine the starter slot value based on the division and type of the row.
+        Args:
+            row (dict): A dictionary containing 'Div' and 'Type' keys.
+        Returns:
+            int: The starter slot value based on the following conditions:
+                - If 'Div' starts with "9" and 'Type' is "G", return 4.
+                - If 'Div' starts with "9" and 'Type' is "P", return 6.
+                - If 'Div' does not start with "9" and 'Type' is "G", return 20.
+                - If 'Div' does not start with "9" and 'Type' is "P", return 31.
+        """
+        
         starterValue = 0
 
         if row['Div'].startswith("9") and row['Type'] == "G":
@@ -203,6 +215,15 @@ class OrTreeScheduler:
         return starterValue
     
     def disallowedSlots(self, row):
+        """
+        Calculate the number of disallowed time slots for a given game.
+        Args:
+            row (dict): A dictionary representing a game, which contains an 'Unwanted' key.
+                        The 'Unwanted' key holds a list of time slots that are not allowed for this game.
+        Returns:
+            int: The number of disallowed time slots for the given game.
+        """
+        
         # so on every row (every specifc game), we get that games name and we also have a list of invalid assignments. if a game can go into a specifc invalid time slot, we add a penalty
         value = 0
         for _ in row['Unwanted']:
@@ -242,26 +263,41 @@ class OrTreeScheduler:
     #     return teamBusyValue
 
     def tierBusy(self, row, sameTeam):
+        """
+        Calculate the penalty value for a team's busy schedule in specific tiers.
+        This method checks if the given games are in the tiers U15, U16, U17, or U19.
+        If a game is in one of these tiers, it increments the penalty value.
+        Args:
+            row (pandas.Series): A row from the DataFrame, representing a game.
+            sameTeam (pandas.DataFrame): DataFrame containing games for the same team.
+        Returns:
+            int: The penalty value based on the number of games in the specified tiers.
+        """
+        
         # we will be given a game, only games, and have to see if it's in the tiers U15,16,17,19 and if it is, then we add a penalty
         games_df = sameTeam[sameTeam['Type'] == 'G']
         tierBusyValue = 0  
 
         if not games_df.empty:
             for _, row in games_df.iterrows():
-                # if row['Tier'].startswith("U15") or row['Tier'].startswith("U16") or row['Tier'].startswith("U17") or row['Tier'].startswith("U19"):
-                #     tierBusyValue += 1
                 if row['Tier'].startswith(('U15', 'U16', 'U17', 'U19')):
-                    #tierBusyValue += 1
                     tierBusyValue += 1
 
         return tierBusyValue
 
-    # def CSSCO19T1DIV95(self, row):
-    #     value = 0
-    #     if row['Label'].startswith(('CSSCO19T1DIV95')):
-    #         value += 100
-        return value
+
     def timeConflicts(self, row):
+        """
+        Calculate the time conflict penalty for a given row.
+        This method checks if the game/practice has any incompatible values and 
+        adds a penalty for each incompatible value found.
+        Args:
+            row (dict): A dictionary representing a row with a key 'Incompatible' 
+                        that contains a list of incompatible values.
+        Returns:
+            int: The total time conflict penalty based on the number of incompatible values.
+        """
+        
         # we need to see if the game/practice has any non-comptiable values, if they do, add a penalty
         otherDivison = row['Incompatible']
         timeConflictValue = 0
