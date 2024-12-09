@@ -165,13 +165,16 @@ class OrTreeScheduler:
             new_pr = pr[:idx] + [slot] + pr[idx+1:]
             # Push into heap with the '*' count as priority
             if not mut:
-                if self.tempA:
-                    if self.tempA[idx] != slot:
-                        continue
-                if self.tempB:
-                    if self.tempB[idx] != slot:
-                        continue
-                self.fringe.append((star_count, (new_pr,'?')))
+                push = False
+                if self.tempA or self.tempB:
+                    if self.tempA and self.tempA[idx] == slot:
+                        push = True
+                    if self.tempB and self.tempB[idx] == slot:
+                        push = True
+                else:
+                    push = True
+                if push:
+                    self.fringe.append((star_count, (new_pr,'?')))
                 
             else:
                 if self.tempA[idx] == slot:
@@ -597,19 +600,20 @@ class OrTreeScheduler:
         return schedule.Schedule.list_to_schedule(sched_list, self.env)
 
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
 # #     # Load CSV with the first column as the index
-#     env = env('minnumber.txt', [1,0,1,0,10,10,10,10], verbose = 1)
+    env = env('tests/CPSC433F24-LargeInput2.txt', [1,0,1,0,10,10,10,10], verbose = 1)
 
-#     constraints = Constr(env)
+    constraints = Constr(env)
 
-#     scheduler = OrTreeScheduler(constraints, env)
+    scheduler = OrTreeScheduler(constraints, env)
 
-#     schedule1 = scheduler.generate_schedule().assigned
-#     print("schedule 1", schedule1)
+    schedule1 = scheduler.generate_schedule().assigned
 
-    #schedule2 = scheduler.generate_schedule(schedule1).assigned
-    #print("schedule 2", schedule2)
+    schedule2 = scheduler.generate_schedule(schedule1).assigned
+
+    print("\n\nschedule 1\n", schedule1)
+    print("\n\nschedule 2\n", schedule2)
 
     # schedule3 = scheduler.generate_schedule().assigned
     # schedule3 = scheduler.generate_schedule()
