@@ -103,7 +103,7 @@ class OrTreeScheduler:
         self.df_with_scores = self.score(self.events)
         self.df_with_scores = self.df_with_scores.sort_values(by='Score', ascending=True)
 
-        print(f"Whole scores dataframe: \n{self.df_with_scores[['League','Tier','Div','Score']]}")
+        # print(f"Whole scores dataframe: \n{self.df_with_scores[['League','Tier','Div','Score']]}")
 
         # print(f"SCORES: {self.df_with_scores['Score']}")
         
@@ -415,7 +415,7 @@ class OrTreeScheduler:
         """
         tempSched = schedule.Schedule.list_to_schedule(sched_list, self.env)
 
-        print(f"\nCurrent sched list: {sched_list}")
+        # print(f"\nCurrent sched list: {sched_list}")
 
         #print(f"Searching for: \n{curr_row}")
 
@@ -466,59 +466,9 @@ class OrTreeScheduler:
         
         available_slots = [slot for slot in available_slots if slot not in bad_slots]
 
-        print(f"available slots: {available_slots}\n")
+        # print(f"available slots: {available_slots}\n")
 
         return available_slots
-
-  
-        self.constraints.reset_slots()
-
-        for event_id, event_details in tempSched:
-            if event_details["Assigned"] == "*":
-                continue
-
-            if not tempSched.max_exceeded(event_details["Assigned"], event_details["Type"]):
-                print("Failed Max")
-
-                return False
-
-            if (event_details["Assigned"] != event_details["Part_assign"]) and (event_details["Part_assign"] != "*"):
-                print("Failed Part_assign")
-
-                return False
-            
-            if event_details["Assigned"] in event_details['Unwanted']:
-                print("Failed Unwanted")
-
-                return False
-
-            if not self.constraints.incompatible(tempSched.get_Assignments(), event_details["Incompatible"], event_details["Type"], event_details["Assigned"], event_id):
-                print("Failed Incompatible")
-
-                return False
-            
-            if not self.constraints.check_evening_div(event_details["Assigned"][2:], event_details["Div"]):
-                print("Failed Evening Div")
-
-                return False
-
-            if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"regcheck"):
-                print("Failed U15-U19 Check")
-
-                return False
-
-            if self.constraints.special_events:
-                if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"specialcheck"):
-                    print("Failed Special Check")
-
-                    return False   
-                     
-            if event_details["Type"] == "P" and ((event_details["Tier"] != 'U13T1S') or (event_details["Tier"] != 'U12T1S')):
-                if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"pcheck"):
-                    print("Failed Practice Check")
-                    return False
-
-        return True
 
 
     def search(self, pr0):
