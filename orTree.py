@@ -193,6 +193,13 @@ class OrTreeScheduler:
         return timeConflictValue
 
 
+    def soft(self, row):
+        softCol = row['Preference']
+        softValue = 0
+        if softCol != []:
+            for index, value in enumerate(row['Preference']):
+                softValue = 1/(index+1)
+        return softValue
     def score(self, givenDataset):
         """
         Calculate the score of a game or practice to determine its priority in scheduling
@@ -213,7 +220,8 @@ class OrTreeScheduler:
             disallowedSlotsVal = self.disallowedSlots(row)
             tierBusyVal = self.tierBusy(row, df_reset)
             timeConflictsVal = self.timeConflicts(row) #math
-            scoreVal = starterVal - disallowedSlotsVal - tierBusyVal - timeConflictsVal
+            softVal = self.soft(row)
+            scoreVal = starterVal - disallowedSlotsVal - tierBusyVal - timeConflictsVal - softVal
             scores.append(scoreVal)  # Append the score to the list
         
         # Add the scores as a new column to the DataFrame
@@ -471,7 +479,7 @@ class OrTreeScheduler:
         while state[1] != 'yes':
             if state[1] == 'no': # our node is a no. go. We can assume all nodes are no too then, if not fleaf would've chosen another
                 return []
-            elif ((time.time() - start_time) > 10):
+            elif ((time.time() - start_time) > 3):
                 state = (pr0, '?') # tuple of pr,sol_entry
                 start_time = time.time()
                 self.df_with_scores = self.score(self.events)

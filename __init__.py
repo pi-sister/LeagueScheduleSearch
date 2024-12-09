@@ -7,7 +7,7 @@ import time
 
 if __name__ == "__main__":
     start_time = time.time()
-    # env = Environment('minnumber.txt', [1,1,0,1,100,100,6,10], verbose = 1)
+    # env = Environment('tests/minnumber.txt', [1,1,0,1,100,100,6,10], verbose = 1)
     #env = Environment('minnumber.txt', [1,1,1,1,10,10,10,10], verbose = 1)
     env = Environment('tests/CPSC433F24-LargeInput2.txt', [1,1,1,1,1,1,1,1], verbose = 1)
 
@@ -18,7 +18,7 @@ if __name__ == "__main__":
     processor = search_process.ScheduleProcessor(scheduler)
 
 
-    schedule = processor.processSchedules(1000,1000)
+    schedule = processor.processSchedules(10000,10000)
     
     print(schedule)
 
