@@ -166,15 +166,15 @@ class OrTreeScheduler:
             # Push into heap with the '*' count as priority
             if not mut:
                 if self.tempA:
-                    if self.tempA != slot:
+                    if self.tempA[idx] != slot:
                         continue
                 if self.tempB:
-                    if self.tempB != slot:
+                    if self.tempB[idx] != slot:
                         continue
                 self.fringe.append((star_count, (new_pr,'?')))
                 
             else:
-                if self.tempA == slot:
+                if self.tempA[idx] == slot:
                     continue
                 self.fringe.append((star_count, (new_pr,'?')))
 
