@@ -95,14 +95,16 @@ class Constr:
         overlapping_slots = []
 
         if event_type == 'P':
-
-            if event['Corresp_game'][0] in scheduled_events.index:
-                related_events = scheduled_events.loc[[event['Corresp_game'][0]]]
+            #print("game to find:", event['Corresp_game'])
+            #print("scheduled events: ", scheduled_events)
+            if event['Corresp_game'] in scheduled_events.index:
+                related_events = scheduled_events.loc[[event['Corresp_game']]]
+                #print("related events in there", related_events)
             else:
                 related_events = scheduled_events[
-                    (scheduled_events.index.str.startswith(event['Corresp_game'][0]))
+                    (scheduled_events.index.str.startswith(event['Corresp_game']))
                 ]
-
+                #print("related events not in there", related_events)
             for _, detail in related_events.iterrows():
                 # overlapping_slots.extend(self.environment.overlaps(detail['Assigned'], detail['Type'], 'P'))
                 overlaps = self.environment.overlaps(detail['Assigned'], detail['Type'], 'P')
