@@ -152,6 +152,8 @@ class OrTreeScheduler:
 
         if idx in assigned_indices:
             return False
+        if mut:
+            idx = index
        # ok so instead of doing what's down below, we want to first get the game/practice with the highest constraints (lowest num)
         # lowest_score = self.df_with_scores['Score'].iloc[index] # we get the lowest score here
         min_row = self.df_with_scores.loc[[self.df_with_scores['Score'].index[index]]] # here it gets the whole row of that lowest scroe
@@ -339,10 +341,7 @@ class OrTreeScheduler:
                 if num == -max_scheduled_index:
                     max_scheduled_nodes.append(leaf)
             # Check how many template we have. 2 templates = crossover. 1 template = mutation. 0 templates = random
-            if self.tempA or self.tempB:
-                newState= self.fleaf_template(max_scheduled_nodes, max_scheduled_index)
-            else:
-                newState = self.fleaf_random(max_scheduled_nodes)
+            newState = self.fleaf_random(max_scheduled_nodes)
         return newState
 
 
@@ -418,52 +417,52 @@ class OrTreeScheduler:
 
         print(f"\nCurrent sched list: {sched_list}")
 
-        print(f"Searching for: \n{curr_row}")
+        #print(f"Searching for: \n{curr_row}")
 
         # return all not maxed out games / practices
         available_slots = tempSched.return_not_maxed(curr_row['Type']).index.to_list()
-        print(f"unmaxed slots:{available_slots}")
+        #print(f"unmaxed slots:{available_slots}")
 
         if curr_row['Tier'].startswith(('U13T1S', 'U12T1S')):
             if 'TU18:00' in available_slots:
                 return ['TU18:00']
             else:
-                print("Special Practice Max")
+                #print("Special Practice Max")
                 return []
         # check if we need to worry about incompatible
         bad_slots = []
         if curr_row["Incompatible"]:
-            print("Has Incompatible")
+            #print("Has Incompatible")
             bad_slots.extend(self.constraints.another_incompatible(tempSched.get_scheduled(), curr_row['Incompatible'], curr_row['Type']))
-            print(f'Bad slots after incompatible: {bad_slots}')
+            #print(f'Bad slots after incompatible: {bad_slots}')
         
         # check for unwanted
         if curr_row["Unwanted"]:
-            print("Has Unwanted")
+            #print("Has Unwanted")
             bad_slots.extend(curr_row['Unwanted'])
-            print(f'Bad slots after unwanted: {bad_slots}')
+            #print(f'Bad slots after unwanted: {bad_slots}')
 
         # check if we need to worry about u15+
         if ((curr_row['Tier'].startswith(('U15', 'U16', 'U17','U19'))) and (curr_row['Type'] == 'G')):
-            print("Is U15+")
+            #print("Is U15+")
             bad_slots.extend(self.constraints.avoid_u15_plus(tempSched.get_scheduled()))
-            print(f'Bad slots after u15161719: {bad_slots}')
+            #print(f'Bad slots after u15161719: {bad_slots}')
             
         # check for special practice
         if curr_row['Tier'].startswith(('U13T1', 'U12T1')):
-            print("Is Div 13/12")
+            #print("Is Div 13/12")
             bad_slots.append('TU18:00')
-            print(f'Bad slots after u1312: {bad_slots}')
+            #print(f'Bad slots after u1312: {bad_slots}')
         
         # check for game/practice overlaps
         bad_slots.extend(self.constraints.check_game_practice_pair(tempSched.get_scheduled(), curr_row, curr_row['Type']))
-        print(f'Bad slots after game_practice check: {bad_slots}')
+        #print(f'Bad slots after game_practice check: {bad_slots}')
 
         # check for evening divs
         if curr_row['Div'].startswith('9'):
-            print("Is Evening Div")
+            #print("Is Evening Div")
             bad_slots.extend(self.constraints.another_check_evening_div(curr_row['Type']))
-            print(f"Bad slots after evening:\n {bad_slots}")
+            #print(f"Bad slots after evening:\n {bad_slots}")
         
         available_slots = [slot for slot in available_slots if slot not in bad_slots]
 

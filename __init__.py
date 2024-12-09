@@ -30,13 +30,13 @@ if __name__ == "__main__":
     # Maximum width for the left part before ':' to ensure consistent alignment
     max_width = max(timeslots.apply(lambda row: f"{row['League']} {row['Tier']} DIV {row['Div']} {row['Practice_Type']} {row['Num']}".strip(), axis=1).apply(len))
 
-    print(f"Eval-value: {schedule.eval}")
     for _, row in timeslots.iterrows():
         base = f"{row['League']} {row['Tier']} DIV {row['Div']}"
         if row['Practice_Type']:
             base += f" {row['Practice_Type']} {row['Num']}"
         day, time = row['Assigned'][:2], row['Assigned'][2:]
         print(f"{base:<{max_width}} : {day}, {time}")
+    print(f"Eval-value: {schedule.eval}")
     
     total = end - start_time
     print(f"{total} seconds ")
