@@ -101,7 +101,8 @@ class OrTreeScheduler:
         self.df_with_scores = self.score(self.events)
         self.df_with_scores = self.df_with_scores.sort_values(by='Score', ascending=True)
     
-
+        # Get the top %30 of rows (top 56 rows)
+        self.top_30_df = self.df_with_scores.head(56)
     def starterSlot(self, row):
         """
         Determine the starter slot value based on the division and type of the row.
@@ -484,9 +485,6 @@ class OrTreeScheduler:
                 start_time = time.time()
                 self.df_with_scores = self.score(self.events)
                 self.df_with_scores = self.df_with_scores.sort_values(by='Score', ascending=True)
-
-                self.tempA = []
-                self.tempB = []
                 self.fringe = []
                 start_time = time.time()
 
