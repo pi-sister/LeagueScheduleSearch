@@ -449,19 +449,23 @@ class OrTreeScheduler:
         if curr_row["Unwanted"]:
             print("Has Unwanted")
             bad_slots.extend(curr_row['Unwanted'])
+            print(f'Bad slots after unwanted: {bad_slots}')
 
         # check if we need to worry about u15+
         if ((curr_row['Tier'].startswith(('U15', 'U16', 'U17','U19'))) and (curr_row['Type'] == 'G')):
             print("Is U15+")
             bad_slots.extend(self.constraints.avoid_u15_plus(tempSched.get_scheduled()))
+            print(f'Bad slots after u15161719: {bad_slots}')
             
         # check for special practice
         if curr_row['Tier'].startswith(('U13T1', 'U12T1')):
             print("Is Div 13/12")
             bad_slots.append('TU18:00')
+            print(f'Bad slots after u1312: {bad_slots}')
         
         # check for game/practice overlaps
         bad_slots.extend(self.constraints.check_game_practice_pair(tempSched.get_scheduled(), curr_row, curr_row['Type']))
+        print(f'Bad slots after game_practice check: {bad_slots}')
 
         # check for evening divs
         if curr_row['Div'].startswith('9'):

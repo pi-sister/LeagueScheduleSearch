@@ -8,7 +8,7 @@ import time
 if __name__ == "__main__":
     start_time = time.time()
     # env = Environment('minnumber.txt', [1,1,0,1,100,100,6,10], verbose = 1)
-    # env = Environment('minnumber.txt', [1,1,1,1,10,10,10,10], verbose = 1)
+    #env = Environment('minnumber.txt', [1,1,1,1,10,10,10,10], verbose = 1)
     env = Environment('CPSC433F24-LargeInput1.txt', [1,1,1,1,10,10,10,10], verbose = 1)
 
     sched = Schedule(env)
@@ -17,7 +17,7 @@ if __name__ == "__main__":
     scheduler = OrTreeScheduler(constraints, env)
     processor = search_process.ScheduleProcessor(scheduler)
 
-    schedule = processor.processSchedules(100,10)
+    schedule = processor.processSchedules(100,1)
     
     print(schedule)
 

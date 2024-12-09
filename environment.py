@@ -209,56 +209,50 @@ class Environment:
         """
         Checks if two events overlap in time.
         Args:
-            start_time_str (str): An event start time.
+            start_time_str (str): An event start time in the format 'DHH:MM'.
             event_type (str): The event's type.
             base_type (str): The event type of an unassigned event.
         Returns:
             list: A list of slots that could overlap with the event.
         """
-
+        # Direct match for the same event type
         if base_type == event_type:
             return [start_time_str]
-        elif base_type == 'G':
-            if start_time_str[:2] == 'MO':
+
+        # Helper function to calculate overlaps
+        def find_overlaps(slots_df, day_filter, max_minutes, is_game):
+            # Extracting time from the start time string
+            event_time = pd.to_datetime(start_time_str[2:], format="%H:%M")
+            # Calculate matches based on time difference
+            matches = slots_df['Start'].apply(
+                lambda x: abs((pd.to_datetime(x, format="%H:%M") - event_time).total_seconds()) / 60 < max_minutes
+            )
+            # Ensure indices align and filter by day
+            matches = matches.reindex(slots_df.index, fill_value=False)
+            return slots_df[(slots_df['Day'] == day_filter) & matches].index.to_list()
+
+        # Handling games
+        if base_type == 'G':
+            if start_time_str.startswith('MO'):
                 return [start_time_str]
-            elif start_time_str[:2] == 'TU':
-                matches = self.game_slots['Start'].apply(lambda x: (abs(pd.to_datetime(start_time_str[2:], format = "%H:%M") - pd.to_datetime(x, format = "%H:%M")).seconds / 60) < 60)
+            elif start_time_str.startswith('TU'):
+                game_slots = find_overlaps(self.practice_slots, 'TU', 60, is_game=True)
+                return game_slots + [start_time_str]
+            else:  # Other days (e.g., 'MO')
+                game_slots = find_overlaps(self.practice_slots, 'MO', 120, is_game=True)
+                return game_slots + [start_time_str]
 
-                matching_games = self.game_slots[matches]
+        # Handling practices (base_type != 'G')
+        if start_time_str.startswith('MO'):
+            practice_slots = find_overlaps(self.practice_slots, 'FR', 120, is_game=False)
+            return practice_slots + [start_time_str]
+        else:  # Other days (e.g., 'TU')
+            practice_slots = find_overlaps(self.practice_slots, 'TU', 60, is_game=False)
+            return practice_slots + [start_time_str]
 
-                return self.game_slots[
-                    (self.game_slots['Day'] == 'TU') & 
-                    (self.game_slots.index.isin(matching_games.index))
-                ].index.to_list()
-            else:
-                matches = self.game_slots['Start'].apply(lambda x: (abs(pd.to_datetime(start_time_str[2:], format =  "%H:%M") - pd.to_datetime(x, format = "%H:%M")).seconds / 60) < 120)
-
-                matching_games = self.game_slots[matches]
-
-                return self.game_slots[
-                    (self.game_slots['Day'] == 'MO') & 
-                    (self.game_slots.index.isin(matching_games.index))
-                ].index.to_list()
-        else:
-            if start_time_str[:2] == 'MO':
-                matches = self.practice_slots['Start'].apply(lambda x: (abs(pd.to_datetime(start_time_str[2:],format= "%H:%M") - pd.to_datetime(x, format="%H:%M")).seconds / 60) < 120)
-
-                matching_practices = self.practice_slots[matches]
-
-                return self.practice_slots[
-                    (self.practice_slots['Day'] == 'FR') & 
-                    (self.practice_slots.index.isin(matching_practices.index))
-                ].index.to_list()
-            else:
-                matches = self.practice_slots['Start'].apply(lambda x: (abs(pd.to_datetime(start_time_str[2:], format="%H:%M") - pd.to_datetime(x, format="%H:%M")).seconds / 60) < 60)
-
-                matching_practices = self.practice_slots[matches]
-
-                return self.practice_slots[
-                    (self.practice_slots['Day'] == 'TU') & 
-                    (self.practice_slots.index.isin(matching_practices.index))
-                ].index.to_list()
+        # Default empty return (should not be reached)
         return []
+
 
 class _PrivateParser:
     @staticmethod
