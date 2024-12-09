@@ -6,6 +6,7 @@ import pandas as pd
 from constr import Constr
 from environment import Environment as env
 import schedule
+import time
 
 class OrTreeScheduler:
     """
@@ -249,10 +250,10 @@ class OrTreeScheduler:
 
         return tierBusyValue
 
-    def u13(self, row):
-        value = 0
-        if row['Tier'].startswith(('U13T1', 'U12T1')):
-            value += 1
+    # def CSSCO19T1DIV95(self, row):
+    #     value = 0
+    #     if row['Label'].startswith(('CSSCO19T1DIV95')):
+    #         value += 100
         return value
     def timeConflicts(self, row):
         # we need to see if the game/practice has any non-comptiable values, if they do, add a penalty
@@ -272,16 +273,7 @@ class OrTreeScheduler:
         df_reset = givenDataset.reset_index().rename(columns={'index': 'Label'})
 
         scores = []  # Initialize an empty list to store scores
-    # Vectorized score computation
-        # scores = (
-        #     df_reset.apply(self.starterSlot, axis=1) -
-        #     df_reset.apply(self.disallowedSlots, axis=1) -
-        #     df_reset.apply(lambda row: self.teamBusy(row, df_reset), axis=1) -
-        #     df_reset.apply(lambda row: self.tierBusy(row, df_reset), axis=1) -
-        #     df_reset.apply(self.timeConflicts, axis=1)
-        # )
 
-        # dataset['Score'] = scores
         for _, row in df_reset.iterrows():
             # print(f"Checking Row: {row[['League','Tier','Div']]}\n")
             starterVal = self.starterSlot(row)
@@ -290,7 +282,7 @@ class OrTreeScheduler:
             # teamBusyVal = self.teamBusy(row, df_reset)
             tierBusyVal = self.tierBusy(row, df_reset)
             timeConflictsVal = self.timeConflicts(row) #math
-            u13Val = self.u13(row)
+            # CSSCO19T1DIV95Val = self.CSSCO19T1DIV95(row)
             # scoreVal = starterVal - disallowedSlotsVal - teamBusyVal - tierBusyVal - timeConflictsVal
             scoreVal = starterVal - disallowedSlotsVal - tierBusyVal - timeConflictsVal
             # print(f"Score is now {scoreVal}\n")
@@ -536,10 +528,23 @@ class OrTreeScheduler:
         a completed schedule, or an empty schedule if there are no solutions
         """
         state = (pr0, '?') # tuple of pr,sol_entry
+        start_time = time.time()
+
         # Check if the goal state has been reached (pr,yes) or all (pr,no)
         while state[1] != 'yes':
             if state[1] == 'no': # our node is a no. go. We can assume all nodes are no too then, if not fleaf would've chosen another
                 return []
+            elif ((time.time() - start_time) > 10):
+                state = (pr0, '?') # tuple of pr,sol_entry
+                start_time = time.time()
+                self.df_with_scores = self.score(self.events)
+                self.df_with_scores = self.df_with_scores.sort_values(by='Score', ascending=True)
+
+                self.tempA = []
+                self.tempB = []
+                self.fringe = []
+                start_time = time.time()
+
             else:
                 # (do fleaf at end because we initially have the start state (no leafs to choose from))
                 # so, we do ftrans (and take a transition)
@@ -636,16 +641,16 @@ class OrTreeScheduler:
         return schedule.Schedule.list_to_schedule(sched_list, self.env)
 
 
-if __name__ == "__main__":
-#     # Load CSV with the first column as the index
-    env = env('minnumber.txt', [1,0,1,0,10,10,10,10], verbose = 1)
+# if __name__ == "__main__":
+# #     # Load CSV with the first column as the index
+#     env = env('minnumber.txt', [1,0,1,0,10,10,10,10], verbose = 1)
 
-    constraints = Constr(env)
+#     constraints = Constr(env)
 
-    scheduler = OrTreeScheduler(constraints, env)
+#     scheduler = OrTreeScheduler(constraints, env)
 
-    schedule1 = scheduler.generate_schedule().assigned
-    print("schedule 1", schedule1)
+#     schedule1 = scheduler.generate_schedule().assigned
+#     print("schedule 1", schedule1)
 
     #schedule2 = scheduler.generate_schedule(schedule1).assigned
     #print("schedule 2", schedule2)

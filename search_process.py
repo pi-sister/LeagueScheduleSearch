@@ -47,10 +47,11 @@ class ScheduleProcessor:
             print(self.heap)
 
         else:
-            newTuple = self.f_select(self.heap)
-            # new schedule from mutation or crossover   
-            if newTuple != 0:
-                heappush(self.heap, newTuple)
+            
+            self.fwert(0) 
+            # # new schedule from mutation or crossover   
+            # if newTuple != NoneType:
+                # heappush(self.heap, newTuple)
             # if the generated tuple is new add it to the heap
             print(self.heap)
 
@@ -71,8 +72,6 @@ class ScheduleProcessor:
                 # generate a random new schedule
                 newSchedule = self.scheduler.generate_schedule()
                 # Get the value of it from set_Eval
-                # if newSchedule == []:
-                #     return "failed hard constraints"
                 fitness = newSchedule.set_Eval()
                 if newSchedule.eval is None:  # Adjust this to the actual attribute name
                     newSchedule.eval = fitness
