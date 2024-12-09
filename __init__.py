@@ -9,7 +9,7 @@ if __name__ == "__main__":
     start_time = time.time()
     # env = Environment('minnumber.txt', [1,1,0,1,100,100,6,10], verbose = 1)
     #env = Environment('minnumber.txt', [1,1,1,1,10,10,10,10], verbose = 1)
-    env = Environment('CPSC433F24-LargeInput1.txt', [1,1,1,1,1,1,1,1], verbose = 1)
+    env = Environment('tests/CPSC433F24-LargeInput2.txt', [1,1,1,1,1,1,1,1], verbose = 1)
 
     sched = Schedule(env)
     
@@ -17,7 +17,7 @@ if __name__ == "__main__":
     scheduler = OrTreeScheduler(constraints, env)
     processor = search_process.ScheduleProcessor(scheduler)
 
-    schedule = processor.processSchedules(10000,1000)
+    schedule = processor.processSchedules(1000,1000)
     
     print(schedule)
 
@@ -30,13 +30,13 @@ if __name__ == "__main__":
     # Maximum width for the left part before ':' to ensure consistent alignment
     max_width = max(timeslots.apply(lambda row: f"{row['League']} {row['Tier']} DIV {row['Div']} {row['Practice_Type']} {row['Num']}".strip(), axis=1).apply(len))
 
+    print(f"Eval-value: {schedule.eval}")
     for _, row in timeslots.iterrows():
         base = f"{row['League']} {row['Tier']} DIV {row['Div']}"
         if row['Practice_Type']:
             base += f" {row['Practice_Type']} {row['Num']}"
         day, time = row['Assigned'][:2], row['Assigned'][2:]
         print(f"{base:<{max_width}} : {day}, {time}")
-    print(f"Eval-value: {schedule.eval}")
     
     total = end - start_time
     print(f"{total} seconds ")
