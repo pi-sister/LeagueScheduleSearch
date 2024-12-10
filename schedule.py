@@ -257,8 +257,10 @@ class Schedule:
         # df = df.order_by("Eval", ascending = False)
         self.update_top_offenders()
         df = self.events.copy()
-        df = df.reset_index()
-        return df["Eval"]
+        # self.bad_guys = self.bad_guys.reset_index().rename(columns={'index': 'Label'})
+
+        df = df.reset_index().rename(columns={'index': 'Label'})
+        return df[["Label","Eval"]]
         
         
         

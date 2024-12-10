@@ -590,8 +590,8 @@ class OrTreeScheduler:
         if (tempA or tempB) and not (tempA and tempB):
 
             self.randomNumbers = list(range(self.length))
-            self.bad_guys = env.get_top_offenders
-            self.bad_guys = self.bad_guys.reset_index().rename(columns={'index': 'Label'})
+            self.bad_guys = env.get_top_offenders(.1)
+
 
             sched_list = self.mutate(pr0) 
             
