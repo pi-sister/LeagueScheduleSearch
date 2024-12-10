@@ -139,8 +139,10 @@ class Schedule:
         if row['Assigned'] == '*':
             return 0
         elif row['Type'] == 'G':
+            # We want to reward games that are filling unfilled slots - negated the penalty
             return -self.gslots.at[row['Assigned'], 'Eval_Unfilled']
         elif row['Type'] == 'P':
+            # We want to reward practices that are filling unfilled slots - negated the penalty
             return -self.pslots.at[row['Assigned'],'Eval_Unfilled']
     
     def pref_penalty_row(self, row, weight) -> int:

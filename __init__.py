@@ -18,7 +18,7 @@ if __name__ == "__main__":
     processor = search_process.ScheduleProcessor(scheduler)
 
 
-    schedule = processor.processSchedules(1000,1000)
+    schedule = processor.processSchedules(100,300)
     
     print(schedule)
 

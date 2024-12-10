@@ -39,7 +39,7 @@ class ScheduleProcessor:
             limitOfSchedules (int): The maximum allowable number of schedules in the heap.
 
         """
-        populate_for = 5
+        populate_for = 50
         while populate_for > limitOfSchedules:
             populate_for -= 1
             print("too many schedules to be added")
@@ -137,7 +137,7 @@ class ScheduleProcessor:
         normalized_probabilities = [prob / total_prob for prob in probabilities]
     
         # Choose between Mutation and Crossover with equal probability
-        transition = random.choices(['Mutation', 'Crossover'], weights=[0.5, 0.5])[0]
+        transition = random.choices(['Mutation', 'Crossover'], weights=[0.7, 0.3])[0]
 
 
         if transition == 'Mutation':
