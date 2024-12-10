@@ -85,7 +85,7 @@ class OrTreeScheduler:
         self.bad_guys = None
         self.fringe = []
         self.starter_slots = env.preassigned_slots
-        self.fitness = 10000000
+        self.fitness = -1000000
         
         # Populate a new database with scores for each event to set the order in which games/practices will be populated
         self.df_with_scores = self.score(self.events)
@@ -258,44 +258,50 @@ class OrTreeScheduler:
         slots = self.constr(pr, self.events.iloc[idx])
         for slot in slots:
             new_pr = pr[:idx] + [slot] + pr[idx+1:]
+            used_pr = new_pr
             #calcuates the currecnt scheudels eval
             new_sched = schedule.Schedule.list_to_schedule(new_pr, self.env)
-            new_fitness = new_sched.set_Eval()
-
+            new_fitness = -(new_sched.set_Eval())
+            
+            # so what we want to do is generate all the possible branches and only expand the brnach with the lowest eval value
+            
             #now we need a way to store the best eval
-            if new_fitness < self.fitness:
+            # - 9500 < 0
+            # - 9450 > -9500
+            if new_fitness > self.fitness:
                 self.fitness = new_fitness
+                used_pr = new_pr
                 # add it to the fringe
             else:
                 continue
-            # Push into heap with the '*' count as priority
-            if not mut:
-                push = False
-                if self.tempA and (self.bad_guys is not None) and not self.bad_guys.empty:
-                    # ok so we have a df with our worst columns, we just gotta see if the label we're working with
-                    #ok so we have our label of what we're working with - min_row_lavel
-                    # now we gotta check if min_row_label is in the worst eval df
-                    # if it is, change it to the rando
-                    # if it isn't don't change it
-                    if min_row_label in self.bad_guys['Label'].values:
-                        if self.tempB and self.tempB[idx] == slot:
-                            push = True
-                        else:
-                            push = False
+        # Push into heap with the '*' count as priority
+        if not mut:
+            push = False
+            if self.tempA and (self.bad_guys is not None) and not self.bad_guys.empty:
+                # ok so we have a df with our worst columns, we just gotta see if the label we're working with
+                #ok so we have our label of what we're working with - min_row_lavel
+                # now we gotta check if min_row_label is in the worst eval df
+                # if it is, change it to the rando
+                # if it isn't don't change it
+                if min_row_label in self.bad_guys['Label'].values:
+                    if self.tempB and self.tempB[idx] == slot:
+                        push = True
                     else:
-                        if self.tempA and self.tempA[idx] == slot:
-                            push = True
-                        else:
-                            push = False
+                        push = False
                 else:
-                    push = True
-                if push:
-                    self.fringe.append((star_count, (new_pr,'?')))
-                
+                    if self.tempA and self.tempA[idx] == slot:
+                        push = True
+                    else:
+                        push = False
             else:
-                if self.tempA[idx] == slot:
-                    continue
-                self.fringe.append((star_count, (new_pr,'?')))
+                push = True
+            if push:
+                self.fringe.append((star_count, (used_pr,'?')))
+            
+        else:
+            if self.tempA[idx] == slot:
+                return False
+            self.fringe.append((star_count, (used_pr,'?')))
 
         return True
 
