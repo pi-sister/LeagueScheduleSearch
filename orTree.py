@@ -92,7 +92,7 @@ class OrTreeScheduler:
         self.constraints = constraints
         self.env = env
         self.length = env.event_length()
-
+        self.bad_guys = None
         self.fringe = []
         self.starter_slots = env.preassigned_slots
         
@@ -590,12 +590,12 @@ class OrTreeScheduler:
         if (tempA or tempB) and not (tempA and tempB):
 
             self.randomNumbers = list(range(self.length))
-            self.bad_guys = env.get_top_offenders(.1)
-
-
             sched_list = self.mutate(pr0) 
             
         else:
+            if (tempA and tempB):
+                tempSched = schedule.Schedule.list_to_schedule(tempA, self.env)
+                self.bad_guys = tempSched.get_top_offenders(.1)
             sched_list = self.search(pr0)
         
 

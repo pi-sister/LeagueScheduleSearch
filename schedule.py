@@ -413,7 +413,7 @@ class Schedule:
         assigned_counts = df['Assigned'].value_counts()
         slots['count'] = assigned_counts
         slots['count'] = slots['count'].fillna(0)
-        
+        print("hi")
         
     def pref_penalty(self, df, verbose = 0): ## DUPLICATE FUNCTION - Will be replaced with @Khadeeja's function
         """

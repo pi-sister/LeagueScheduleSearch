@@ -39,7 +39,7 @@ class ScheduleProcessor:
             limitOfSchedules (int): The maximum allowable number of schedules in the heap.
 
         """
-        populate_for = 50
+        populate_for = 5
         while populate_for > limitOfSchedules:
             populate_for -= 1
             print("too many schedules to be added")
