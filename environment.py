@@ -87,8 +87,8 @@ class Environment:
         """
 
         if file_name is None: # If no file is given, ask for it
-            file_name = input('File')
-            integers = input('Weights and Penalties:').split(' ')
+            file_name = input('File path: \n')
+            integers = input('Weights and Penalties: (enter 8 integers separated by spaces)\n').split(' ')
             integers = list(map(int, integers))
             print(f'File chosen = {file_name}')
             print(f'Integer inputs = {integers}\n')
