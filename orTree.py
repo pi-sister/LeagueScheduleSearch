@@ -278,7 +278,7 @@ class OrTreeScheduler:
             # Push into heap with the '*' count as priority
             if not mut:
                 push = False
-                if self.tempA or self.tempB:
+                if self.tempA and self.bad_guys:
                     # ok so we have a df with our worst columns, we just gotta see if the label we're working with
                     #ok so we have our label of what we're working with - min_row_lavel
                     # now we gotta check if min_row_label is in the worst eval df

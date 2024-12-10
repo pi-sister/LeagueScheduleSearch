@@ -66,6 +66,7 @@ class Schedule:
         self.pslots = env.practice_slots.copy()
         self.pslots['Max'] = pd.to_numeric(self.pslots['Max'])
         self.tier_dict = {}
+
     def __lt__(self, other):
         #  Comparing based on the `eval` attribute
         if isinstance(other, Schedule):
@@ -210,7 +211,8 @@ class Schedule:
         if row['Type'] == 'P':
             return 0
         else:
-            return self.tier_dict[row['League'], row['Tier'], row['Assigned']]*penalty*weight
+            number = self.tier_dict[row['League'], row['Tier'], row['Assigned']] - 1
+            return number*penalty*weight
         
         
     def update_top_offenders(self):
@@ -225,8 +227,8 @@ class Schedule:
         6. Calculates the "Eval_SlotDiff" metric for events using the `slot_diff_penalty_row` method.
         7. Aggregates the evaluation metrics into a single "Eval" metric for events.
         The evaluation metrics are stored in the following DataFrame columns:
-        - `self.g_slots["Eval_Unfilled"]`
-        - `self.p_slots["Eval_Unfilled"]`
+        - `self.gslots["Eval_Unfilled"]`
+        - `self.pslots["Eval_Unfilled"]`
         - `self.events["Eval_Unfilled"]`
         - `self.events["Eval_Pref"]`
         - `self.events["Eval_Pair"]`
@@ -235,6 +237,7 @@ class Schedule:
         """
         
         self.update_counters()
+        self.create_slot_diff_dict()
         self.gslots["Eval_Unfilled"] = self.gslots.apply(lambda row: self.min_filled_slots(row, self.env.w_minfilled, self.env.pen_gamemin), axis = 1)
         self.pslots["Eval_Unfilled"] = self.pslots.apply(lambda row: self.min_filled_slots(row, self.env.w_minfilled, self.env.pen_pracmin), axis = 1)
         self.events["Eval_Unfilled"] = self.events.apply(self.min_filled_events_penalty, axis = 1)
@@ -245,7 +248,7 @@ class Schedule:
         
         self.events["Eval"] = self.events["Eval_Unfilled"] + self.events["Eval_Pref"] + self.events["Eval_Pair"] + self.events["Eval_SlotDiff"]
         
-    def get_top_offenders(self) -> pd.DataFrame:
+    def get_top_offenders(self, portion: int) -> pd.DataFrame:
         """
         Retrieves the top offenders from the events DataFrame.
         This method updates the top offenders list and returns a DataFrame
@@ -254,12 +257,15 @@ class Schedule:
         Returns:
             pd.DataFrame: A DataFrame containing the "Eval" column from the events.
         """
+        number = int(len(self.events.index) * portion)
         # df = df.order_by("Eval", ascending = False)
         self.update_top_offenders()
         df = self.events.copy()
         # self.bad_guys = self.bad_guys.reset_index().rename(columns={'index': 'Label'})
 
         df = df.reset_index().rename(columns={'index': 'Label'})
+        # df = df.sort_values(by = "Eval", ascending = False)
+        df = df.nlargest(number, "Eval")
         return df[["Label","Eval"]]
         
         
