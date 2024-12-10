@@ -157,7 +157,8 @@ class Schedule:
             int: The total penalty for the row, multiplied by the given weight. If the 'Preference'
                  list is empty, returns 0.
         """
-        
+        if row['Assigned'] == '*':
+            return 0
         if row['Preference'] == []:
             return 0
         else:
@@ -185,6 +186,8 @@ class Schedule:
         Returns:
             int: The calculated penalty for the given row. Returns 0 if 'Pair_with' is empty.
         """
+        if row['Assigned'] == '*':
+            return 0
         if row['Pair_with'] == []:
             return 0
         else:
@@ -210,7 +213,7 @@ class Schedule:
         self.tier_dict = games.groupby(['League', 'Tier', 'Assigned']).size().to_dict()
         
     def slot_diff_penalty_row(self, row, weight, penalty: int, verbose = 0) -> int:
-        if row['Type'] == 'P':
+        if row['Type'] == 'P' or row['Assigned'] == '*':
             return 0
         else:
             number = self.tier_dict[row['League'], row['Tier'], row['Assigned']] - 1
