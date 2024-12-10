@@ -1,4 +1,4 @@
-# Charmander's Schedulue
+# Charmander's Schedule
 
 ### To Run
 to run the file, you can run 
@@ -15,8 +15,8 @@ as the first variable of the Environment initializer. The second variable of the
 containing all the pentalies. 
 
 ### Tree Logic
-Our project is a setbased search that gets valid answers from an or-tree and through the use of a genetic
-algorithm gets other valid ansewrs with different fitnesses. the genetic algorithm has a heap that contains all 
+Our project is a set-based search that gets valid answers from an or-tree and through the use of a genetic
+algorithm gets other valid answers with different fitnesses. the genetic algorithm has a heap that contains all 
 the valid schedules and their fitness.
 
 to control the size of this heap, you can change the first variable of processor.processSchedules() in line 20 
@@ -26,7 +26,7 @@ To control the number of iterations the genetic algorithm runs, you can control 
 in line 20 of __init__.py.
 
 ### Optimizing
-To optimize the code for large inputs, we first schedule in the games/practices with the most constraints. This is determined by the the score() function in the orTree.py file.
+To optimize the code for large inputs, we first schedule in the games/practices with the most constraints. This is determined by the score() function in the orTree.py file.
 
 Additionally, we made it so for each game/practice, we only get the valid possible slot options it can branch into. This helped prune the tree by not expanding branches that fail hard constraints.
 
