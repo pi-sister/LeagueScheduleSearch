@@ -284,16 +284,17 @@ class OrTreeScheduler:
                     # now we gotta check if min_row_label is in the worst eval df
                     # if it is, change it to the rando
                     # if it isn't don't change it
-                    if min_row_label in self.bad_guys['Label'].values:
-                        if self.tempB and self.tempB[idx] == slot:
-                            push = True
+                    if self.bad_guys:
+                        if min_row_label in self.bad_guys['Label'].values:
+                            if self.tempB and self.tempB[idx] == slot:
+                                push = True
+                            else:
+                                push = False
                         else:
-                            push = False
-                    else:
-                        if self.tempA and self.tempA[idx] == slot:
-                            push = True
-                        else:
-                            push = False
+                            if self.tempA and self.tempA[idx] == slot:
+                                push = True
+                            else:
+                                push = False
                 else:
                     push = True
                 if push:
@@ -594,8 +595,8 @@ class OrTreeScheduler:
             
         else:
             if (tempA and tempB):
-                tempSched = schedule.Schedule.list_to_schedule(tempA, self.env)
-                self.bad_guys = tempSched.get_top_offenders(.1)
+                # tempSched = schedule.Schedule.list_to_schedule(tempA, self.env)
+                self.bad_guys = tempA.get_top_offenders()
             sched_list = self.search(pr0)
         
 

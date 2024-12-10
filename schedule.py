@@ -65,7 +65,7 @@ class Schedule:
 
         self.pslots = env.practice_slots.copy()
         self.pslots['Max'] = pd.to_numeric(self.pslots['Max'])
-
+        self.tier_dict = {}
     def __lt__(self, other):
         #  Comparing based on the `eval` attribute
         if isinstance(other, Schedule):
@@ -140,7 +140,7 @@ class Schedule:
         elif row['Type'] == 'G':
             return -self.gslots.at[row['Assigned'], 'Eval_Unfilled']
         elif row['Type'] == 'P':
-            return -self.plots.at[row['Assigned'],'Eval_Unfilled']
+            return -self.pslots.at[row['Assigned'],'Eval_Unfilled']
     
     def pref_penalty_row(self, row, weight) -> int:
         """
@@ -235,9 +235,9 @@ class Schedule:
         """
         
         self.update_counters()
-        self.g_slots["Eval_Unfilled"] = self.gslots.apply(lambda row: self.min_filled_slots(row, self.env.w_minfilled, self.env.pen_gamemin), axis = 1)
-        self.p_slots["Eval_Unfilled"] = self.pslots.apply(lambda row: self.min_filled_slots(row, self.env.w_minfilled, self.env.pen_pracmin), axis = 1)
-        self.events["Eval_Unfilled"] = self.events.apply(self.min_filled_events_penalty(), axis = 1)
+        self.gslots["Eval_Unfilled"] = self.gslots.apply(lambda row: self.min_filled_slots(row, self.env.w_minfilled, self.env.pen_gamemin), axis = 1)
+        self.pslots["Eval_Unfilled"] = self.pslots.apply(lambda row: self.min_filled_slots(row, self.env.w_minfilled, self.env.pen_pracmin), axis = 1)
+        self.events["Eval_Unfilled"] = self.events.apply(self.min_filled_events_penalty, axis = 1)
         
         self.events["Eval_Pref"] = self.events.apply(lambda row: self.pref_penalty_row(row, self.env.w_pref), axis = 1)
         self.events["Eval_Pair"] = self.events.apply(lambda row: self.pair_penalty_row(row, self.env.w_pair, self.env.pen_notpaired), axis = 1)
@@ -413,7 +413,6 @@ class Schedule:
         assigned_counts = df['Assigned'].value_counts()
         slots['count'] = assigned_counts
         slots['count'] = slots['count'].fillna(0)
-        print("hi")
         
     def pref_penalty(self, df, verbose = 0): ## DUPLICATE FUNCTION - Will be replaced with @Khadeeja's function
         """
