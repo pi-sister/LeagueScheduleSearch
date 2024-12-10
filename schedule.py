@@ -248,7 +248,7 @@ class Schedule:
         
         self.events["Eval"] = self.events["Eval_Unfilled"] + self.events["Eval_Pref"] + self.events["Eval_Pair"] + self.events["Eval_SlotDiff"]
         
-    def get_top_offenders(self, portion: int) -> pd.DataFrame:
+    def get_top_offenders(self, portion: int = 0.1) -> pd.DataFrame:
         """
         Retrieves the top offenders from the events DataFrame.
         This method updates the top offenders list and returns a DataFrame

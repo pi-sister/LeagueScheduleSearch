@@ -278,23 +278,22 @@ class OrTreeScheduler:
             # Push into heap with the '*' count as priority
             if not mut:
                 push = False
-                if self.tempA and self.bad_guys:
+                if self.tempA and not self.bad_guys.empty:
                     # ok so we have a df with our worst columns, we just gotta see if the label we're working with
                     #ok so we have our label of what we're working with - min_row_lavel
                     # now we gotta check if min_row_label is in the worst eval df
                     # if it is, change it to the rando
                     # if it isn't don't change it
-                    if self.bad_guys:
-                        if min_row_label in self.bad_guys['Label'].values:
-                            if self.tempB and self.tempB[idx] == slot:
-                                push = True
-                            else:
-                                push = False
+                    if min_row_label in self.bad_guys['Label'].values:
+                        if self.tempB and self.tempB[idx] == slot:
+                            push = True
                         else:
-                            if self.tempA and self.tempA[idx] == slot:
-                                push = True
-                            else:
-                                push = False
+                            push = False
+                    else:
+                        if self.tempA and self.tempA[idx] == slot:
+                            push = True
+                        else:
+                            push = False
                 else:
                     push = True
                 if push:
@@ -596,7 +595,7 @@ class OrTreeScheduler:
         else:
             if (tempA and tempB):
                 # tempSched = schedule.Schedule.list_to_schedule(tempA, self.env)
-                self.bad_guys = tempA.get_top_offenders()
+                self.bad_guys = tempA.get_top_offenders(0.1)
             sched_list = self.search(pr0)
         
 
