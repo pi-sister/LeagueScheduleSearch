@@ -23,7 +23,7 @@ to control the size of this heap, you can change the first variable of processor
 of  __init__.py . 
 
 To control the number of iterations the genetic algorithm runs, you can control the second variable of processor.processSchedules()
-in line 20 of __init__.py .
+in line 20 of __init__.py.
 
 ### Optimizing
 To optimize the code for large inputs, we first schedule in the games/practices with the most constraints. This is determined by the the score() function in the orTree.py file.
