@@ -18,7 +18,7 @@ if __name__ == "__main__":
     processor = search_process.ScheduleProcessor(scheduler)
 
 
-    schedule = processor.processSchedules(100,300)
+    schedule = processor.processSchedules(10,350)
     
     print(schedule)
 
@@ -41,22 +41,3 @@ if __name__ == "__main__":
     
     total = end - start_time
     print(f"{total} seconds ")
-
-
-    # Testing the assign function
-    # sched.assign(scheduler.generate_schedule(starting))
-    
-    # sched.assign(["MO8:00","MO8:00","MO9:00","MO8:00","MO8:00","MO8:00","MO8:00","MO8:00"], True)
-    # sched.assign([])
-
-    #assign_time = timeit.timeit(lambda: sched.assign_and_eval(["MO8:00","MO8:00","MO9:00","MO9:00","MO8:00","MO8:00","MO8:00","MO8:00"], verbose = 1), number=1)
-
-    # assign_time = timeit.timeit(lambda: sched.assign_and_eval(["MO8:00","MO8:00","TU10:00","TU10:00","MO9:00","FR9:00","FR8:00","TU12:30", "FR10:00", "TU9:00", "TU12:30", "TU12:30", "TU12:30"], verbose = 1), number=1)
-
-    # assign2_time = timeit.timeit(lambda: sched.assign2_and_eval(["MO8:00","MO8:00","MO9:00","MO9:00","MO8:00","MO8:00","MO8:00","MO8:00"], True), number=1)
-
-    
-    #print(f"Time taken for assign: {assign_time} seconds")
-    # print(f"Time taken for assign2: {assign2_time} seconds")
-
-

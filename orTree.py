@@ -70,39 +70,27 @@ class OrTreeScheduler:
                 env (dictionary): contains all the necessary information to complete orTree (particularly
                 for the constr function)
         """
-        # print(f"ENV: {env}")
-        # print(f"TYPE: {env.game_slots  }")
-        # print(f'help: {dir(env)}')
-
         # populate local variables
         self.game_slots = env.game_slots
-        # self.game_slots = self.game_slots.sort_values(by='Max', ascending=True)
 
         self.practice_slots = env.practice_slots
-        # self.practice_slots = self.practice_slots.sort_values(by='Max', ascending=True)
 
         self.events = env.events
-        # print(f"eventsss: {self.events}")
-        # print("\ngames\n ", self.game_slots)
 
         # Filter the events DataFrame to include only games
         self.games = env.events[env.events['Type']=='G']
-        # print("\nEvents\n", env.events)
-        #print("\ngames\n ", self.games)
         self.constraints = constraints
         self.env = env
         self.length = env.event_length()
         self.bad_guys = None
         self.fringe = []
         self.starter_slots = env.preassigned_slots
-        
+        self.fitness = 10000000
         
         # Populate a new database with scores for each event to set the order in which games/practices will be populated
         self.df_with_scores = self.score(self.events)
         self.df_with_scores = self.df_with_scores.sort_values(by='Score', ascending=True)
     
-        # Get the top %30 of rows (top 56 rows)
-        # self.top_30_df = self.df_with_scores.head(56)
     def starterSlot(self, row):
         """
         Determine the starter slot value based on the division and type of the row.
@@ -119,11 +107,9 @@ class OrTreeScheduler:
 
         if row['Div'].startswith("9") and row['Type'] == "G":
             starterValue = 4 
-            # starterValue = -100
 
         elif row['Div'].startswith("9") and row['Type'] == "P":
             starterValue = 6 
-            # starterValue = -100
 
         elif not row['Div'].startswith("9") and row['Type'] == "G":
             starterValue = 20 
@@ -166,10 +152,7 @@ class OrTreeScheduler:
 
         if not games_df.empty:
             for _, row in games_df.iterrows():
-                # if row['Tier'].startswith("U15") or row['Tier'].startswith("U16") or row['Tier'].startswith("U17") or row['Tier'].startswith("U19"):
-                #     tierBusyValue += 1
                 if row['Tier'].startswith(('U15', 'U16', 'U17', 'U19')):
-                    #tierBusyValue += 1
                     tierBusyValue += 1
 
         return tierBusyValue
@@ -275,6 +258,15 @@ class OrTreeScheduler:
         slots = self.constr(pr, self.events.iloc[idx])
         for slot in slots:
             new_pr = pr[:idx] + [slot] + pr[idx+1:]
+            #calcuates the currecnt scheudels eval
+            new_fitness = new_pr.set_Eval()
+
+            #now we need a way to store the best eval
+            if new_fitness < self.fitness:
+                self.fitness = new_fitness
+                # add it to the fringe
+            else:
+                continue
             # Push into heap with the '*' count as priority
             if not mut:
                 push = False
