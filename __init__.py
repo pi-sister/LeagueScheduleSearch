@@ -7,14 +7,17 @@ import time
 
 if __name__ == "__main__":
     start_time = time.time()
-    env = Environment('CPSC433F24-LargeInput1.txt', [1,1,0,1,100,100,6,10], verbose = 1)
+    # env = Environment('tests/minnumber.txt', [1,1,0,1,100,100,6,10], verbose = 1)
+    #env = Environment('minnumber.txt', [1,1,1,1,10,10,10,10], verbose = 1)
+    env = Environment('tests/CPSC433F24-LargeInput2.txt', [1,1,1,1,1,1,1,1], verbose = 1)
     sched = Schedule(env)
     
     constraints = Constr(env)
     scheduler = OrTreeScheduler(constraints, env)
     processor = search_process.ScheduleProcessor(scheduler)
 
-    schedule = processor.processSchedules(100,10)
+
+    schedule = processor.processSchedules(100,300)
     
     print(schedule)
 
@@ -37,6 +40,7 @@ if __name__ == "__main__":
     
     total = end - start_time
     print(f"{total} seconds ")
+
 
     # Testing the assign function
     # sched.assign(scheduler.generate_schedule(starting))

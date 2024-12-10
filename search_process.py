@@ -4,6 +4,7 @@ from heapq import heapify, heappush, heappop, nlargest
 import schedule
 from orTree import OrTreeScheduler
 import random
+from tqdm import tqdm
 
 #note: the OrtreeScheduler needs to give me a schedule of type Schedule so 
 #that i can call set_Eval on it.
@@ -38,21 +39,28 @@ class ScheduleProcessor:
             limitOfSchedules (int): The maximum allowable number of schedules in the heap.
 
         """
-        if len(self.heap) <= 4:
+        populate_for = 50
+        while populate_for > limitOfSchedules:
+            populate_for -= 1
+            print("too many schedules to be added")
+
+        if len(self.heap) <= populate_for:
             self.fwert(0)  # add new random schedule
-            # print(self.heap)
+            print(self.heap)
 
         elif len(self.heap) > limitOfSchedules:
             self.fwert(1)  # Deletion operation
-            # print(self.heap)
+            print(self.heap)
 
         else:
+            # self.fwert(0)  # add new random schedule
+
             newTuple = self.f_select(self.heap)
             # new schedule from mutation or crossover   
             if newTuple != 0:
                 heappush(self.heap, newTuple)
             # if the generated tuple is new add it to the heap
-                # print(self.heap)
+            print(self.heap)
 
 
 
@@ -81,15 +89,13 @@ class ScheduleProcessor:
                 # this is a max heap for effeciency so invert the value
                 if all(newSchedule != existing_schedule for _, existing_schedule in self.heap):
                     heappush(self.heap, (-fitness, newSchedule))
-                
+              
                 
             case 1:  
                 # Remove the worst schedule
                 # Remove the largest value in the heap (the worst schedule in a min heap).
                 # Remove the largest value in the heap (the worst schedule in a min heap).
-                n_largest = nlargest(1, self.heap)[0]
-                self.heap.remove(n_largest)  # Remove by value
-                heapify(self.heap)  # Convert the list into a valid heap structure
+                heappop(self.heap)
                 # Remove the worst by E_value
 
         
@@ -112,7 +118,11 @@ class ScheduleProcessor:
         fitnesses = [-fitness for fitness, schedule in current_state]
         schedules = [schedule for fitness, schedule in current_state]
 
-        
+        # Sort schedules and fitnesses together based on fitness (ascending order)
+        sorted_state = sorted(current_state, key=lambda x: x[0])  # Sort by fitness (first element of the tuple)
+        # Extract schedules after sorting
+        sorted_schedules = [schedule for _, schedule in sorted_state]
+
         # Calculate the total fitness of all schedules in the current state
         total_fitness = sum(fitness for fitness in fitnesses)
         if total_fitness == 0:
@@ -127,8 +137,8 @@ class ScheduleProcessor:
         normalized_probabilities = [prob / total_prob for prob in probabilities]
     
         # Choose between Mutation and Crossover with equal probability
-        transition = random.choices(['Mutation', 'Crossover'], weights=[0.5, 0.5])[0]
-    
+        transition = random.choices(['Mutation', 'Crossover'], weights=[0.7, 0.3])[0]
+
 
         if transition == 'Mutation':
             # Select one schedule for mutation based on the calculated probabilities
@@ -137,8 +147,10 @@ class ScheduleProcessor:
     
         elif transition == 'Crossover':
             # select two schedules for crossover based on the calculated probabilities
-            selected_schedules = random.choices(schedules, weights=normalized_probabilities, k=2)
-            schedule = self.scheduler.generate_schedule(selected_schedules[0], selected_schedules[1])
+            # selected_schedules = random.choices(schedules, weights=normalized_probabilities, k=2)
+            selected_schedules = random.choices(schedules, weights=normalized_probabilities, k=1)
+            best_schedule = sorted_schedules[0]
+            schedule = self.scheduler.generate_schedule(best_schedule, selected_schedules[0])
             
         if not schedule:
             return 0
@@ -160,7 +172,7 @@ class ScheduleProcessor:
             a good enough answer, and the best one we have
         """
         
-        for i in range(iterNum):
+        for i in tqdm(range(iterNum)):
             self.chooseAction(limitOfSchedules)
         return max(self.heap)[1]
             

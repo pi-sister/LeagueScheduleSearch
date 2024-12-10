@@ -6,6 +6,7 @@ import pandas as pd
 from constr import Constr
 from environment import Environment as env
 import schedule
+import time
 
 class OrTreeScheduler:
     """
@@ -69,20 +70,165 @@ class OrTreeScheduler:
                 env (dictionary): contains all the necessary information to complete orTree (particularly
                 for the constr function)
         """
+        # print(f"ENV: {env}")
+        # print(f"TYPE: {env.game_slots  }")
+        # print(f'help: {dir(env)}')
 
         # populate local variables
         self.game_slots = env.game_slots
+        # self.game_slots = self.game_slots.sort_values(by='Max', ascending=True)
+
         self.practice_slots = env.practice_slots
+        # self.practice_slots = self.practice_slots.sort_values(by='Max', ascending=True)
+
+        self.events = env.events
+        # print(f"eventsss: {self.events}")
+        # print("\ngames\n ", self.game_slots)
+
         # Filter the events DataFrame to include only games
         self.games = env.events[env.events['Type']=='G']
         # print("\nEvents\n", env.events)
-        # print("\ngames\n ", self.games)
+        #print("\ngames\n ", self.games)
         self.constraints = constraints
         self.env = env
         self.length = env.event_length()
+        self.bad_guys = None
         self.fringe = []
         self.starter_slots = env.preassigned_slots
-    # TODO: @Emily 
+        
+        
+        # Populate a new database with scores for each event to set the order in which games/practices will be populated
+        self.df_with_scores = self.score(self.events)
+        self.df_with_scores = self.df_with_scores.sort_values(by='Score', ascending=True)
+    
+        # Get the top %30 of rows (top 56 rows)
+        # self.top_30_df = self.df_with_scores.head(56)
+    def starterSlot(self, row):
+        """
+        Determine the starter slot value based on the division and type of the row.
+        Args:
+            row (dict): A dictionary containing 'Div' and 'Type' keys.
+        Returns:
+            int: The starter slot value based on the following conditions:
+                - If 'Div' starts with "9" and 'Type' is "G", return 4.
+                - If 'Div' starts with "9" and 'Type' is "P", return 6.
+                - If 'Div' does not start with "9" and 'Type' is "G", return 20.
+                - If 'Div' does not start with "9" and 'Type' is "P", return 31.
+        """
+        starterValue = 0
+
+        if row['Div'].startswith("9") and row['Type'] == "G":
+            starterValue = 4 
+            # starterValue = -100
+
+        elif row['Div'].startswith("9") and row['Type'] == "P":
+            starterValue = 6 
+            # starterValue = -100
+
+        elif not row['Div'].startswith("9") and row['Type'] == "G":
+            starterValue = 20 
+        elif not row['Div'].startswith("9") and row['Type'] == "P":
+            starterValue = 31
+
+        return starterValue
+    
+
+    def disallowedSlots(self, row):
+        """
+        Calculate the number of disallowed time slots for a given game.
+        Args:
+            row (dict): A dictionary representing a game, which contains an 'Unwanted' key.
+                        The 'Unwanted' key holds a list of time slots that are not allowed for this game.
+        Returns:
+            int: The number of disallowed time slots for the given game.
+        """
+        # so on every row (every specifc game), we get that games name and we also have a list of invalid assignments. if a game can go into a specifc invalid time slot, we add a penalty
+        value = 0
+        for _ in row['Unwanted']:
+            value += 1
+        return value
+    
+
+    def tierBusy(self, row, sameTeam):
+        """
+        Calculate the penalty value for a team's busy schedule in specific tiers.
+        This method checks if the given games are in the tiers U15, U16, U17, or U19.
+        If a game is in one of these tiers, it increments the penalty value.
+        Args:
+            row (pandas.Series): A row from the DataFrame, representing a game.
+            sameTeam (pandas.DataFrame): DataFrame containing games for the same team.
+        Returns:
+            int: The penalty value based on the number of games in the specified tiers.
+        """
+        # we will be given a game, only games, and have to see if it's in the tiers U15,16,17,19 and if it is, then we add a penalty
+        games_df = sameTeam[sameTeam['Type'] == 'G']
+        tierBusyValue = 0  
+
+        if not games_df.empty:
+            for _, row in games_df.iterrows():
+                # if row['Tier'].startswith("U15") or row['Tier'].startswith("U16") or row['Tier'].startswith("U17") or row['Tier'].startswith("U19"):
+                #     tierBusyValue += 1
+                if row['Tier'].startswith(('U15', 'U16', 'U17', 'U19')):
+                    #tierBusyValue += 1
+                    tierBusyValue += 1
+
+        return tierBusyValue
+
+    def timeConflicts(self, row):
+        """
+        Calculate the time conflict penalty for a given row.
+        This method checks if the game/practice has any incompatible values and 
+        adds a penalty for each incompatible value found.
+        Args:
+            row (dict): A dictionary representing a row with a key 'Incompatible' 
+                        that contains a list of incompatible values.
+        Returns:
+            int: The total time conflict penalty based on the number of incompatible values.
+        """
+        # we need to see if the game/practice has any non-comptiable values, if they do, add a penalty
+        otherDivison = row['Incompatible']
+        timeConflictValue = 0
+        if otherDivison != []:
+            for value in row['Incompatible']:
+                timeConflictValue += 1
+        return timeConflictValue
+
+
+    def soft(self, row):
+        softCol = row['Preference']
+        softValue = 0
+        if softCol != []:
+            for index, value in enumerate(row['Preference']):
+                softValue = 1/(index+1)
+        return softValue
+    def score(self, givenDataset):
+        """
+        Calculate the score of a game or practice to determine its priority in scheduling
+
+        Parameters:
+            A data frame containing games and practices to be scored.
+
+        Returns:
+            A score column appended to the dataframe
+        """
+        # add a new column with the index name just so it's easier to compare something later
+        df_reset = givenDataset.reset_index().rename(columns={'index': 'Label'})
+
+        scores = []  # Initialize an empty list to store scores
+
+        for _, row in df_reset.iterrows():
+            starterVal = self.starterSlot(row)
+            disallowedSlotsVal = self.disallowedSlots(row)
+            tierBusyVal = self.tierBusy(row, df_reset)
+            timeConflictsVal = self.timeConflicts(row) #math
+            softVal = self.soft(row)
+            scoreVal = starterVal - disallowedSlotsVal - tierBusyVal - timeConflictsVal - softVal
+            scores.append(scoreVal)  # Append the score to the list
+        
+        # Add the scores as a new column to the DataFrame
+        givenDataset['Score'] = scores
+        return givenDataset
+
 
     def altern(self, pr):
         """
@@ -96,12 +242,10 @@ class OrTreeScheduler:
             Returns:
                 Boolean: True if altern function successfully applied, False otherwise
         """
-        for i, slot in enumerate(pr):
-            # Find the first unscheduled slot
-            if slot == '*': 
-                self.pushFringe(i, pr)
+        # regenerate and sort scores to always pick the lowest priority first
+        for index in range(len(self.df_with_scores)):
+            if self.pushFringe(index, pr):
                 return True
-        # Return False if no unscheduled slots were found
         return False
 
 
@@ -113,26 +257,54 @@ class OrTreeScheduler:
                 index (Int): the index in the schedule to schedule a slot into
                 pr (list): the current schedule being modified
         """
-        # Check if it's in the range for game slots
-        if index < len(self.games):
-            for game_slot in self.game_slots.index:
-                # Create a new schedule with this game slot
-                new_pr = pr[:index] + [game_slot] + pr[index+1:]
-                # Push into heap with the '*' count as priority
-                if not mut:
-                    self.fringe.append((-index, (new_pr,'?')))
-                else:
-                    self.fringe.append((1, (new_pr,'?')))
-        # Otherwise, it must be a practice slot
+        if not mut:
+            # we get the score value that we would like to iterate over using the index decided in altern
+            min_row_label = self.df_with_scores['Score'].index[index]  # we get the corresponding lowest score's label 
+            idx = self.events.index.get_loc(min_row_label) # here it gets the index of the lowest score
+            assigned_indices = {i for i, slot in enumerate(pr) if slot != '*'} # make sure we haven't already assigned this game
+
+            if idx in assigned_indices: # Go back to altern and try again.
+                return False
         else:
-            for practice_slot in self.practice_slots.index:
-                # Create a new schedule with this practice slot
-                new_pr = pr[:index] + [practice_slot] + pr[index+1:]
-                # Push into heap with the '*' count as priority
-                if not mut:
-                    self.fringe.append((-index, (new_pr,'?')))
+            idx = index
+
+        # Grab the star count that will be stored for sorting purposes of the leaves. (Lowest star count chosen first)    
+        star_count = pr.count('*')
+
+        # Grab the possible slots that this particular schedule can be scheduled to
+        slots = self.constr(pr, self.events.iloc[idx])
+        for slot in slots:
+            new_pr = pr[:idx] + [slot] + pr[idx+1:]
+            # Push into heap with the '*' count as priority
+            if not mut:
+                push = False
+                if self.tempA and (self.bad_guys is not None) and not self.bad_guys.empty:
+                    # ok so we have a df with our worst columns, we just gotta see if the label we're working with
+                    #ok so we have our label of what we're working with - min_row_lavel
+                    # now we gotta check if min_row_label is in the worst eval df
+                    # if it is, change it to the rando
+                    # if it isn't don't change it
+                    if min_row_label in self.bad_guys['Label'].values:
+                        if self.tempB and self.tempB[idx] == slot:
+                            push = True
+                        else:
+                            push = False
+                    else:
+                        if self.tempA and self.tempA[idx] == slot:
+                            push = True
+                        else:
+                            push = False
                 else:
-                    self.fringe.append((1, (new_pr,'?')))
+                    push = True
+                if push:
+                    self.fringe.append((star_count, (new_pr,'?')))
+                
+            else:
+                if self.tempA[idx] == slot:
+                    continue
+                self.fringe.append((star_count, (new_pr,'?')))
+
+        return True
 
 
     def ftrans(self, state):
@@ -145,9 +317,7 @@ class OrTreeScheduler:
                 state (schedule, sol_entry): The chosen state from fleaf that will go through a transition function.
         """
         pr = state[0]
-        # if constraints are violated
-        if (not self.constr(state[0])):
-            return((pr, 'no'))
+        # We no longer check for constraints here since altern will not push invalid schedules
         # if schedule is complete
         if ('*' not in pr):
             return((pr, 'yes'))
@@ -180,10 +350,7 @@ class OrTreeScheduler:
                 if num == -max_scheduled_index:
                     max_scheduled_nodes.append(leaf)
             # Check how many template we have. 2 templates = crossover. 1 template = mutation. 0 templates = random
-            if self.tempA or self.tempB:
-                newState= self.fleaf_template(max_scheduled_nodes, max_scheduled_index)
-            else:
-                newState = self.fleaf_random(max_scheduled_nodes)
+            newState = self.fleaf_random(max_scheduled_nodes)
         return newState
 
 
@@ -246,59 +413,70 @@ class OrTreeScheduler:
         return selected[1]
 
 
-
-    def constr(self, sched_list: list):
+    def constr(self, sched_list: list, curr_row):
         """
         Function that evaluates the constraints. Returns True if no constraints are violated, False otherwise
 
             Parameters:
                 schedule (list): partially or fully defined schedule
+                game or practice row:   the row in the dataframe corresponding to the game that wants to be scheduled
+            
+            Returns:
+                A list of slots that the specified game or practice can be scheduled into.
 
         """
         tempSched = schedule.Schedule.list_to_schedule(sched_list, self.env)
 
-  
-        self.constraints.reset_slots()
+        # return all not maxed out games / practices
+        available_slots = tempSched.return_not_maxed(curr_row['Type']).index.to_list()
 
-        for event_id, event_details in tempSched:
-            if event_details["Assigned"] == "*":
-                continue
-
-            if not tempSched.max_exceeded(event_details["Assigned"], event_details["Type"]):
-                print("Failed Max")
-                return False
-
-            if (event_details["Assigned"] != event_details["Part_assign"]) and (event_details["Part_assign"] != "*"):
-                print("Failed Part_assign")
-                return False
+        if curr_row['Tier'].startswith(('U13T1S', 'U12T1S')):
+            if 'TU18:00' in available_slots:
+                return ['TU18:00']
+            else:
+                #print("Special Practice Max")
+                return []
             
-            if event_details["Assigned"] in event_details['Unwanted']:
-                print("Failed Unwanted")
-                return False
+        # check if we need to worry about incompatible
+        bad_slots = []
+        if curr_row["Incompatible"]:
+            #print("Has Incompatible")
+            bad_slots.extend(self.constraints.another_incompatible(tempSched.get_scheduled(), curr_row['Incompatible'], curr_row['Type']))
+            #print(f'Bad slots after incompatible: {bad_slots}')
+        
+        # check for unwanted
+        if curr_row["Unwanted"]:
+            #print("Has Unwanted")
+            bad_slots.extend(curr_row['Unwanted'])
+            #print(f'Bad slots after unwanted: {bad_slots}')
 
-            if not self.constraints.incompatible(tempSched.get_Assignments(), event_details["Incompatible"], event_details["Type"], event_details["Assigned"], event_id):
-                print("Failed Incompatible")
-                return False
+        # check if we need to worry about u15+
+        if ((curr_row['Tier'].startswith(('U15', 'U16', 'U17','U19'))) and (curr_row['Type'] == 'G')):
+            #print("Is U15+")
+            bad_slots.extend(self.constraints.avoid_u15_plus(tempSched.get_scheduled()))
+            #print(f'Bad slots after u15161719: {bad_slots}')
             
-            if not self.constraints.check_evening_div(event_details["Assigned"][2:], event_details["Div"]):
-                print("Failed Evening Div")
-                return False
+        # check for special practice
+        if curr_row['Tier'].startswith(('U13T1', 'U12T1')):
+            #print("Is Div 13/12")
+            bad_slots.append('TU18:00')
+            #print(f'Bad slots after u1312: {bad_slots}')
+        
+        # check for game/practice overlaps
+        bad_slots.extend(self.constraints.check_game_practice_pair(tempSched.get_scheduled(), curr_row, curr_row['Type']))
+        #print(f'Bad slots after game_practice check: {bad_slots}')
 
-            if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"regcheck"):
-                print("Failed U15-U19 Check")
-                return False
+        # check for evening divs
+        if curr_row['Div'].startswith('9'):
+            #print("Is Evening Div")
+            bad_slots.extend(self.constraints.another_check_evening_div(curr_row['Type']))
+            #print(f"Bad slots after evening:\n {bad_slots}")
+        
+        available_slots = [slot for slot in available_slots if slot not in bad_slots]
 
-            if self.constraints.special_events:
-                if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"specialcheck"):
-                    print("Failed Special Check")
-                    return False   
-                     
-            if event_details["Type"] == "P" and ((event_details["Tier"] != 'U13T1S') or (event_details["Tier"] != 'U12T1S')):
-                if not self.constraints.check_assign(tempSched.get_Assignments(), event_details["Tier"], event_details["Assigned"], event_details["Corresp_game"],"pcheck"):
-                    print("Failed Practice Check")
-                    return False
+        # print(f"available slots: {available_slots}\n")
 
-        return True
+        return available_slots
 
 
     def search(self, pr0):
@@ -307,10 +485,23 @@ class OrTreeScheduler:
         a completed schedule, or an empty schedule if there are no solutions
         """
         state = (pr0, '?') # tuple of pr,sol_entry
+        start_time = time.time()
+
         # Check if the goal state has been reached (pr,yes) or all (pr,no)
         while state[1] != 'yes':
             if state[1] == 'no': # our node is a no. go. We can assume all nodes are no too then, if not fleaf would've chosen another
                 return []
+            elif ((time.time() - start_time) > 3):
+                state = (pr0, '?') # tuple of pr,sol_entry
+                start_time = time.time()
+                self.df_with_scores = self.score(self.events)
+                self.df_with_scores = self.df_with_scores.sort_values(by='Score', ascending=True)
+
+                self.tempA = []
+                self.tempB = []
+                self.fringe = []
+                start_time = time.time()
+
             else:
                 # (do fleaf at end because we initially have the start state (no leafs to choose from))
                 # so, we do ftrans (and take a transition)
@@ -347,8 +538,12 @@ class OrTreeScheduler:
             # back to here and select another random number if it doesn't produce any valid solutions.)
             rand = random.choice(self.randomNumbers)
             self.randomNumbers.remove(rand)
+            # so we get the index value of the game in the df, but we actually need the index of that game in the priority list
+            rand_row_label = self.events.index[rand]  # we get the corresponding lowest score's label 
+            idx = self.df_with_scores.index.get_loc(rand_row_label) # here it gets the index of the lowest score
+
             # populate the fringe with our initial nodes of all the possible combos our mutation can be.
-            self.pushFringe(rand, pr0, True)
+            self.pushFringe(idx, pr0, True)
 
             prMut = None
             while not prMut:
@@ -380,6 +575,11 @@ class OrTreeScheduler:
         Returns:
             list: A valid schedule generated by the OrTree search algorithm.
         """
+        # self.df_with_scores_changing = self.df_with_scores
+        self.df_with_scores = self.score(self.events)
+        self.df_with_scores = self.df_with_scores.sort_values(by='Score', ascending=True)
+        # print(f"SCORES: {self.df_with_scores['Score']}")
+
         self.tempA = tempA
         self.tempB = tempB
         self.fringe = []
@@ -388,14 +588,16 @@ class OrTreeScheduler:
         pr0 = self.starter_slots
 
         if (tempA or tempB) and not (tempA and tempB):
-            print("TEMPA AND B")
-            print(tempA)
-            print(tempB)
 
             self.randomNumbers = list(range(self.length))
             sched_list = self.mutate(pr0) 
+            
         else:
+            if (tempA and tempB):
+                # tempSched = schedule.Schedule.list_to_schedule(tempA, self.env)
+                self.bad_guys = tempA.get_top_offenders(0.1)
             sched_list = self.search(pr0)
+        
 
         # return the found schedule
         print(f'Final Sched: {sched_list}')
@@ -405,27 +607,20 @@ class OrTreeScheduler:
         return schedule.Schedule.list_to_schedule(sched_list, self.env)
 
 
-# if __name__ == "__main__":
-#     # Load CSV with the first column as the index
-#     # env = env('Jamie copy.txt', [1,0,1,0,10,10,10,10], verbose = 1)
-#     env = env('example.txt', [1,0,1,0,10,10,10,10], verbose = 1)
+if __name__ == "__main__":
+# #     # Load CSV with the first column as the index
+    env = env('tests/CPSC433F24-LargeInput2.txt', [1,0,1,0,10,10,10,10], verbose = 1)
 
+    constraints = Constr(env)
 
-#     # print(f'Preassignments: {env.preassigned_slots}')
-#     print(f'Events:\n {env.events.columns}')
-#     print(f'Practiceslots:\n {env.practice_slots}')
-#     print(f'Gameslots:\n {env.game_slots}')
+    scheduler = OrTreeScheduler(constraints, env)
 
-#     constraints = Constr(env)
+    schedule1 = scheduler.generate_schedule().assigned
 
-#     scheduler = OrTreeScheduler(constraints, env)
+    schedule2 = scheduler.generate_schedule(schedule1).assigned
 
-#     # schedule1 = scheduler.generate_schedule().assigned
-#     schedule1 = scheduler.generate_schedule()
-#     print("schedule 1", schedule1)
-
-    #schedule2 = scheduler.generate_schedule(schedule1).assigned
-    #print("schedule 2", schedule2)
+    print("\n\nschedule 1\n", schedule1)
+    print("\n\nschedule 2\n", schedule2)
 
     # schedule3 = scheduler.generate_schedule().assigned
     # schedule3 = scheduler.generate_schedule()

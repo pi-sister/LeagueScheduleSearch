@@ -65,6 +65,7 @@ class Schedule:
 
         self.pslots = env.practice_slots.copy()
         self.pslots['Max'] = pd.to_numeric(self.pslots['Max'])
+        self.tier_dict = {}
 
     def __lt__(self, other):
         #  Comparing based on the `eval` attribute
@@ -108,6 +109,168 @@ class Schedule:
         Method to obtain the preassignments
         """
         return self.assignments.to_list()
+    
+    def min_filled_slots(self, row, weight, penalty: int) -> int:
+        """
+        Calculate the penalty for the minimum filled slots in a schedule row.
+        Args:
+            row (dict): A dictionary representing a schedule row with keys 'Min' and 'count'.
+            weight (int): The weight to be applied to the penalty.
+            penalty (int): The penalty value to be applied for each slot below the minimum.
+        Returns:
+            int: The calculated penalty based on the difference between the minimum required slots 
+                 and the actual filled slots, multiplied by the given penalty and weight.
+        """
+        
+        difference = int(row['Min']) - int(row['count'])
+        return max(0,  difference)*penalty*weight
+    
+    def min_filled_events_penalty(self, row) -> int:
+        """
+        Calculate the penalty for minimum filled events based on the given row.
+        Args:
+            row (pd.Series): A pandas Series representing a row in the schedule dataframe.
+        Returns:
+            int: The penalty value. Returns 0 if the event is already assigned ('Assigned' == '*').
+                 Returns the negative value of 'Eval_Unfilled' from the corresponding slot in gslots or plots
+                 based on the 'Type' of the event ('G' for gslots, 'P' for plots).
+        """
+        
+        if row['Assigned'] == '*':
+            return 0
+        elif row['Type'] == 'G':
+            # We want to reward games that are filling unfilled slots - negated the penalty
+            return -self.gslots.at[row['Assigned'], 'Eval_Unfilled']
+        elif row['Type'] == 'P':
+            # We want to reward practices that are filling unfilled slots - negated the penalty
+            return -self.pslots.at[row['Assigned'],'Eval_Unfilled']
+    
+    def pref_penalty_row(self, row, weight) -> int:
+        """
+        Calculate the penalty for a given row based on preferences and assigned slot.
+        Args:
+            row (dict): A dictionary representing a row with keys 'Preference' and 'Assigned'.
+                        'Preference' is expected to be a list of tuples where each tuple contains
+                        a preferred slot and its associated penalty value.
+            weight (int): The weight to be applied to the calculated penalty.
+        Returns:
+            int: The total penalty for the row, multiplied by the given weight. If the 'Preference'
+                 list is empty, returns 0.
+        """
+        
+        if row['Preference'] == []:
+            return 0
+        else:
+            penalty = 0
+            # If list isn't empty, iterate through each preference
+            if isinstance(row['Preference'], list): 
+                # For each tuple in this row's preference list, check if the assigned slot is not the preferred slot
+                for item in row['Preference']:
+                    # If the assigned slot is not the preferred slot, add the penalty value to the total penalty for this row
+                    if item[0] != row['Assigned']:
+                        penalty += int(item[1])
+        return penalty*weight
+    
+    def pair_penalty_row(self, row, weight, penalty: int, verbose = 0) -> int:
+        """
+        Calculate the penalty for a given row based on pairing constraints.
+        This method checks if the 'Pair_with' list in the row is empty. If it is not empty,
+        it iterates through each pair and counts how many pairs do not have the same 'Assigned' value
+        as the current row. The penalty is then calculated based on the count, weight, and penalty values.
+        Args:
+            row (dict): A dictionary representing a row in the schedule, containing 'Pair_with' and 'Assigned' keys.
+            weight (float): The weight factor to apply to the penalty.
+            penalty (int): The base penalty value to apply for each mismatch.
+            verbose (int, optional): Verbosity level for debugging purposes. Defaults to 0.
+        Returns:
+            int: The calculated penalty for the given row. Returns 0 if 'Pair_with' is empty.
+        """
+        if row['Pair_with'] == []:
+            return 0
+        else:
+            count = 0
+            # If list isn't empty, iterate through each pair
+            if isinstance(row['Pair_with'], list):
+                for pair in row['Pair_with']:
+                    if self.events.at[pair, 'Assigned'] != row['Assigned']:
+                        count += 1
+            return count/2*penalty*weight
+        
+    def create_slot_diff_dict(self) -> dict:
+        """
+        Create a dictionary to store the count of games assigned to each slot.
+        This method iterates through the game slots and creates a dictionary with the slot names as keys
+        and the count of games assigned to each slot as values.
+        Returns:
+            dict: A dictionary containing the count of games assigned to each slot.
+        """
+        games = self.events[self.events['Type'] == 'G']
+        if games.empty:
+            pass
+        self.tier_dict = games.groupby(['League', 'Tier', 'Assigned']).size().to_dict()
+        
+    def slot_diff_penalty_row(self, row, weight, penalty: int, verbose = 0) -> int:
+        if row['Type'] == 'P':
+            return 0
+        else:
+            number = self.tier_dict[row['League'], row['Tier'], row['Assigned']] - 1
+            return number*penalty*weight
+        
+        
+    def update_top_offenders(self):
+        """
+        Updates the evaluation metrics for game slots, practice slots, and events.
+        This method performs the following steps:
+        1. Updates internal counters by calling `self.update_counters()`.
+        2. Calculates the "Eval_Unfilled" metric for game slots and practice slots using the `min_filled_slots` method.
+        3. Calculates the "Eval_Unfilled" metric for events using the `min_filled_events_penalty` method.
+        4. Calculates the "Eval_Pref" metric for events using the `pref_penalty_row` method.
+        5. Calculates the "Eval_Pair" metric for events using the `pair_penalty_row` method.
+        6. Calculates the "Eval_SlotDiff" metric for events using the `slot_diff_penalty_row` method.
+        7. Aggregates the evaluation metrics into a single "Eval" metric for events.
+        The evaluation metrics are stored in the following DataFrame columns:
+        - `self.gslots["Eval_Unfilled"]`
+        - `self.pslots["Eval_Unfilled"]`
+        - `self.events["Eval_Unfilled"]`
+        - `self.events["Eval_Pref"]`
+        - `self.events["Eval_Pair"]`
+        - `self.events["Eval_SlotDiff"]`
+        - `self.events["Eval"]`
+        """
+        
+        self.update_counters()
+        self.create_slot_diff_dict()
+        self.gslots["Eval_Unfilled"] = self.gslots.apply(lambda row: self.min_filled_slots(row, self.env.w_minfilled, self.env.pen_gamemin), axis = 1)
+        self.pslots["Eval_Unfilled"] = self.pslots.apply(lambda row: self.min_filled_slots(row, self.env.w_minfilled, self.env.pen_pracmin), axis = 1)
+        self.events["Eval_Unfilled"] = self.events.apply(self.min_filled_events_penalty, axis = 1)
+        
+        self.events["Eval_Pref"] = self.events.apply(lambda row: self.pref_penalty_row(row, self.env.w_pref), axis = 1)
+        self.events["Eval_Pair"] = self.events.apply(lambda row: self.pair_penalty_row(row, self.env.w_pair, self.env.pen_notpaired), axis = 1)
+        self.events["Eval_SlotDiff"] = self.events.apply(lambda row: self.slot_diff_penalty_row(row, self.env.w_secdiff, self.env.pen_section), axis = 1)
+        
+        self.events["Eval"] = self.events["Eval_Unfilled"] + self.events["Eval_Pref"] + self.events["Eval_Pair"] + self.events["Eval_SlotDiff"]
+        
+    def get_top_offenders(self, portion: int = 0.1) -> pd.DataFrame:
+        """
+        Retrieves the top offenders from the events DataFrame.
+        This method updates the top offenders list and returns a DataFrame
+        containing the "Eval" column, which presumably holds evaluation metrics
+        for the events.
+        Returns:
+            pd.DataFrame: A DataFrame containing the "Eval" column from the events.
+        """
+        number = int(len(self.events.index) * portion)
+        # df = df.order_by("Eval", ascending = False)
+        self.update_top_offenders()
+        df = self.events.copy()
+        # self.bad_guys = self.bad_guys.reset_index().rename(columns={'index': 'Label'})
+
+        df = df.reset_index().rename(columns={'index': 'Label'})
+        # df = df.sort_values(by = "Eval", ascending = False)
+        df = df.nlargest(number, "Eval")
+        return df[["Label","Eval"]]
+        
+        
         
     def set_Eval(self, verbose = 0):
         """
@@ -140,8 +303,9 @@ class Schedule:
         
         df = pd.concat([g_df, p_df])
         
-        min = self.min_filled(self.gslots, env.pen_notpaired, verbose)
-        min += self.min_filled(self.pslots, env.pen_notpaired, verbose)
+        
+        min = self.min_filled(self.gslots, env.pen_gamemin, verbose)
+        min += self.min_filled(self.pslots, env.pen_pracmin, verbose)
         min *= env.w_minfilled
         
         pref = self.pref_penalty(df, verbose)
@@ -208,7 +372,22 @@ class Schedule:
             
         else:
             raise ValueError("Invalid slot type. Must be 'G' or 'P'.")
-        
+
+    def return_not_maxed(self, slot_type):
+        """
+        Check to see if a particular slot type has been maxed out
+
+        Args:
+            the slot type. P or G
+
+        Returns:
+            Boolean True or False
+        """
+        if slot_type =='G':
+            return self.gslots[self.gslots['count'] < self.gslots['Max']]
+        else:
+            return self.pslots[self.pslots['count'] < self.pslots['Max']]
+
     def update_counters(self):
         """
         Update the game or practice slot counter based on the given slot and slot type.
@@ -242,7 +421,6 @@ class Schedule:
         assigned_counts = df['Assigned'].value_counts()
         slots['count'] = assigned_counts
         slots['count'] = slots['count'].fillna(0)
-        
         
     def pref_penalty(self, df, verbose = 0): ## DUPLICATE FUNCTION - Will be replaced with @Khadeeja's function
         """
@@ -309,11 +487,11 @@ class Schedule:
                     for pair in row['Pair_with']:
                         if df.loc[pair]['Assigned'] != row['Assigned']:
                             count += 1
-                return count/2
+                return count
         # Apply the count_unpaired function to each row in the DataFrame
         df['not_paired'] = df.apply(count_unpaired, axis=1)
         count = df['not_paired'].sum()
-        total_penalty = count * penalty
+        total_penalty = count/2 * penalty
         
         if verbose:
             print(f'\nPair Penalty: {count} number of unpaired assignments x {penalty} = {total_penalty}\n')
@@ -355,215 +533,6 @@ class Schedule:
             
         return total_penalty
 
-
-    def set_Eval1(self):
-        # Initialize environment variables
-        env = self.env
-        events = env.events
-        game_slots = env.game_slots
-        practice_slots = env.practice_slots
-        total_penalty = 0
-        total_df = events.copy()
-
-        # Add 'Assigned' column to total_df and initialize it
-        total_df['Assigned'] = self.assigned
-        total_df['Assigned'] = total_df['Assigned'].apply(lambda x: '' if isinstance(x, list) and not x else x)
-        
-
-        # Merge total_df with game_slots and practice_slots on 'Assigned' column
-        gdf = total_df[total_df['Type'] == 'G']
-        pdf = total_df[total_df['Type'] == 'P']
-        gdf = pd.merge(gdf, game_slots, how='left', left_on='Assigned', right_index=True)
-        pdf = pd.merge(pdf, practice_slots, how='left', left_on='Assigned', right_index=True)
-        # This needs to be fixed - separate merges for game and practice slots
-        df = pd.concat([gdf, pdf])
-
-        # print('***Testing df****')
-        # print(df.columns)
-
-        # Filter rows where 'Assigned' is not empty
-        filterRows = df[df['Assigned'] != ""]
-
-        # Initialize dictionaries to track the number of games and practices in each slot
-        game_slot_dic = dict()
-        prac_slot_dic = dict()
-
-        # Initialize game_slot_dic with game slot indices
-        for slot in env.game_slots.index:
-            game_slot_dic[slot] = 0
-
-        # Initialize prac_slot_dic with practice slot indices
-        for slot in env.practice_slots.index:
-            prac_slot_dic[slot] = 0
-
-        # Iterate over filtered rows
-        for row in filterRows.index:
-            # Increment the count of games in the assigned slot
-            game_slot_dic[df['Assigned'][row]] += 1
-
-            # Check for paired games and apply penalties if they are not in the same slot
-            if debug_pair_with:
-                events_non_empty = events[events['Pair_with'].apply(lambda x: not isinstance(x, list) or len(x) > 0)]
-                pair_with_dict = events_non_empty['Pair_with'].to_dict()
-
-            # Check if the current row has any paired games
-            if pair_with_dict.get(row) is not None:
-                # Get the list of games paired with the current row
-                games_to_check_for_row = pair_with_dict.get(row)
-                
-                # Debugging: print the list of paired games
-                if test_stuff_debug:
-                    print(f"{games_to_check_for_row = }")
-
-                # Iterate over each paired game
-                for game in games_to_check_for_row:
-                    # Check if the paired game is in the filtered rows
-                    if game in filterRows.index:
-                        # Get the assigned slot for the current row
-                        var = df['Assigned'][row]
-                        # Get the assigned slot for the paired game
-                        v2 = df['Assigned'][game]
-
-                        # If the assigned slots are different, apply the pairing penalty
-                        if var != v2:
-                            cal = env.pen_notpaired * env.w_pair
-                            total_penalty += cal / 2
-                    else:
-                        # Debugging: print a message if the paired game is not in the index
-                        print("game not in index")
-
-            # Check for preferred slots and apply penalties if they are not in the preferred slot
-            events_pref_non_empty = events[events['Preference'].apply(lambda x: not isinstance(x, list) or len(x) > 0)]
-            pref_with_dict = events_pref_non_empty['Preference'].to_dict()
-
-            if pref_with_dict.get(row) is not None:
-                slots_to_check = pref_with_dict.get(row)
-
-                for slot in slots_to_check:
-                    if slot in filterRows.index:
-                        var = df['Assigned'][row]
-                        v2 = df['Assigned'][slot]
-
-                        if var != v2:
-                            pen = env.w_pref * df['Pref_value'][slot]
-                            total_penalty += pen
-            # end game pair stuff
-            
-            # now we gotta do the fit pref
-            # we need to get the preferred values for the games and practices
-            # if the games and practices are not in their preferred slot, we add a penalty
-            events_pref_non_empty = events[events['Preference'].apply(lambda x: not isinstance(x, list) or len(x) > 0)]
-            pref_with_dict = events_pref_non_empty['Preference'].to_dict()
-
-            if pref_with_dict.get(row) is not None:
-                slots_to_check = pref_with_dict[row]  # List of tuples with preferred slots and penalties
- 
-                # Loop through each preferred time slot and its associated penalty value
-                for preferred_slot, penalty_value in slots_to_check:
-                    if preferred_slot in filterRows.index:  # Check if this slot exists in filterRows
-                        # Get the assigned slots for the current event and the preferred event
-                        assigned_event = df.loc[row, 'Assigned']
-                        assigned_slot = df.loc[preferred_slot, 'Assigned']
-                        
-                        # If assigned times don't match, apply a penalty
-                        if assigned_event != assigned_slot:
-                            penalty = env.w_pref * penalty_value
-                            total_penalty += penalty
-            
-            
-            # Different divisional games within a single age/tier group should be scheduled at different times. For each pair of divisions that is scheduled into the same slot, we add a penalty to the Eval-value of an assignment.
-            # okay to do that we needa check a game and see its division. if there are any other games with the same division as it, we add a penatly (half of one to account for the loop also adding a penalty to the divison)
-            
-            section_with_dict = events['Div'].to_dict()
-            sections_to_check = section_with_dict.get(row)
-
-            if sections_to_check: # Ensure division is not None
-                for other_row in filterRows.index:
-                    if other_row != row:  # Avoid comparing the same game
-                        other_division = df.loc[other_row, 'Div']
-                        assigned_slot = df.loc[row, 'Assigned']
-                        other_assigned_slot = df.loc[other_row, 'Assigned']
-                        
-                        # Apply penalty if two games with the same division are in the same slot
-                        if sections_to_check == other_division and assigned_slot == other_assigned_slot:
-                            total_penalty += env.pen_section  # Adding half to account for double-counting in both loops
-                            
-                    # if section in filterRows.index:
-                    #     assigned_section = df.loc[row, 'Assigned']
-                    #     assigned_slot = df.loc[section, 'Assigned']
-                        
-                    #     # If there are 2 or more games with the same divison in the same time slot, then apply a penalty
-                    #     if
-
-        # Define function to calculate game minimum penalty
-        def game_min_penalty():
-            penalty_game_min_total = 0
-            current_game_penalty = 0
-            gslots_min = game_slots['Min'].to_dict()
-            for slot in game_slot_dic:
-                current_game_penalty = env.pen_gamemin * env.w_minfilled * max(0, int(gslots_min[slot]) - game_slot_dic[slot])
-                penalty_game_min_total += current_game_penalty
-            print(f"{penalty_game_min_total = }")
-            return penalty_game_min_total
-
-        # Add game minimum penalty to total penalty
-        total_penalty = game_min_penalty() + total_penalty
-
-        # Define function to calculate practice minimum penalty
-        def prac_min_penalty():
-            penalty_prac_min_total = 0
-            current_prac_penalty = 0
-            pslots_min = practice_slots['Min'].to_dict()
-            for slot in prac_slot_dic:
-                current_prac_penalty = env.pen_gamemin * env.w_minfilled * max(0, int(pslots_min[slot]) - prac_slot_dic[slot])
-                penalty_prac_min_total += current_prac_penalty
-            print(f"{penalty_prac_min_total = }")
-            return penalty_prac_min_total
-
-        # Add practice minimum penalty to total penalty
-        total_penalty = prac_min_penalty() + total_penalty
-                
-            
-            
-            # if(test_stuff_debug):
-            #     print(f"{total_penalty = }")
-
-        self.eval = total_penalty
-        return total_penalty
-    
-    def assign_and_eval(self, slots, verbose = 0):
-        """
-        Assigns slots to events, updates counters, evaluates the assignment, and optionally prints the details.
-        Args:
-            slots (list): A list of slots to be assigned to events.
-            verbose (int, optional): If set to a non-zero value, prints the assigned slots and evaluation. Defaults to 0.
-        Returns:
-            float: The evaluation score after assigning the slots.
-        """
-        self.assigned = slots
-        self.events['Assigned'] = self.assigned
-        self.update_counters()
-        self.set_Eval(verbose=verbose)
-        if verbose:
-            print(f"Assigned: {self.assigned}")
-            print(f"Evaluation: {self.eval}")
-        return self.eval
-        
-    def assign2_and_eval(self, slots, verbose = False):
-        """
-        Assigns the provided slots to the instance, evaluates the assignment, and optionally prints the details.
-        Args:
-            slots (list): The slots to be assigned.
-            verbose (bool, optional): If True, prints the assigned slots and evaluation. Defaults to False.
-        Returns:
-            float: The evaluation result after assigning the slots.
-        """
-        self.assigned = slots
-        self.set_Eval1()
-        if verbose:
-            print(f"Assigned: {self.assigned}")
-            print(f"Evaluation: {self.eval}")
-        return self.eval
     
     def assign(self, slots):
         """
@@ -577,9 +546,11 @@ class Schedule:
         if self.assigned:
             self.events['Assigned'] = self.assigned
             self.update_counters()
+            # self.update_top_offenders()
         else:
             print("Invalid Schedule")
             sys.exit() 
+
     def get_scheduled(self) -> pd.DataFrame:
         """
         Retrieve scheduled events.
@@ -607,4 +578,5 @@ class Schedule:
         sched.assign(lst)
         return sched
 
-        
+
+# %%

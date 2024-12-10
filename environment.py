@@ -87,8 +87,8 @@ class Environment:
         """
 
         if file_name is None: # If no file is given, ask for it
-            file_name = input('File')
-            integers = input('Weights and Penalties:').split(' ')
+            file_name = input('File path: \n')
+            integers = input('Weights and Penalties: (enter 8 integers separated by spaces)\n').split(' ')
             integers = list(map(int, integers))
             print(f'File chosen = {file_name}')
             print(f'Integer inputs = {integers}\n')
@@ -197,24 +197,62 @@ class Environment:
     def get_gslot_list(self):
         return self.__game_slots.index.tolist()
     
-    def overlaps(self, event1, event2):
+    def not_evening_pslots(self):
+        matches = self.__practice_slots['Start'].apply(lambda x: pd.to_datetime('18:00', format = "%H:%M") > pd.to_datetime(x, format = "%H:%M"))
+        return self.__practice_slots[matches].index.to_list()
+
+    def not_evening_gslots(self):
+        matches = self.__game_slots['Start'].apply(lambda x: pd.to_datetime('18:00', format ="%H:%M") > pd.to_datetime(x, format ="%H:%M"))
+        return self.__game_slots[matches].index.to_list()
+    
+    def overlaps(self, start_time_str, event_type, base_type):
         """
         Checks if two events overlap in time.
         Args:
-            event1 (str): The first event to check.
-            event2 (str): The second event to check.
+            start_time_str (str): An event start time in the format 'DHH:MM'.
+            event_type (str): The event's type.
+            base_type (str): The event type of an unassigned event.
         Returns:
-            bool: True if the events overlap, False otherwise.
+            list: A list of slots that could overlap with the event.
         """
-        day1, start1 = self.__events.loc[event1, ['Day', 'Start']]
-        day2, start2 = self.__events.loc[event2, ['Day', 'Start']]
-        
-        if day1 == day2:
-            time_diff = abs(pd.to_datetime(start1) - pd.to_datetime(start2)).seconds / 60
-            return time_diff < 60
-        elif (day1 == 'MO' and day2 == 'F') or (day1 == 'F' and day2 == 'MO'):
-            time_diff = abs(pd.to_datetime(start1) - pd.to_datetime(start2)).seconds / 60
-            return time_diff < 120
+        # Direct match for the same event type
+        if base_type == event_type:
+            return [start_time_str]
+
+        # Helper function to calculate overlaps
+        def find_overlaps(slots_df, day_filter, max_minutes, is_game):
+            # Extracting time from the start time string
+            event_time = pd.to_datetime(start_time_str[2:], format="%H:%M")
+            # Calculate matches based on time difference
+            matches = slots_df['Start'].apply(
+                lambda x: abs((pd.to_datetime(x, format="%H:%M") - event_time).total_seconds()) / 60 < max_minutes
+            )
+            # Ensure indices align and filter by day
+            matches = matches.reindex(slots_df.index, fill_value=False)
+            return slots_df[(slots_df['Day'] == day_filter) & matches].index.to_list()
+
+        # Handling games
+        if base_type == 'G':
+            if start_time_str.startswith('MO'):
+                return [start_time_str]
+            elif start_time_str.startswith('TU'):
+                game_slots = find_overlaps(self.practice_slots, 'TU', 60, is_game=True)
+                return game_slots + [start_time_str]
+            else:  # Other days (e.g., 'MO')
+                game_slots = find_overlaps(self.practice_slots, 'MO', 120, is_game=True)
+                return game_slots + [start_time_str]
+
+        # Handling practices (base_type != 'G')
+        if start_time_str.startswith('MO'):
+            practice_slots = find_overlaps(self.practice_slots, 'FR', 120, is_game=False)
+            return practice_slots + [start_time_str]
+        else:  # Other days (e.g., 'TU')
+            practice_slots = find_overlaps(self.practice_slots, 'TU', 60, is_game=False)
+            return practice_slots + [start_time_str]
+
+        # Default empty return (should not be reached)
+        return []
+
 
 class _PrivateParser:
     @staticmethod
