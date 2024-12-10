@@ -259,7 +259,8 @@ class OrTreeScheduler:
         for slot in slots:
             new_pr = pr[:idx] + [slot] + pr[idx+1:]
             #calcuates the currecnt scheudels eval
-            new_fitness = new_pr.set_Eval()
+            new_sched = schedule.Schedule.list_to_schedule(new_pr, self.env)
+            new_fitness = new_sched.set_Eval()
 
             #now we need a way to store the best eval
             if new_fitness < self.fitness:
