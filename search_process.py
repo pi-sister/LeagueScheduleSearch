@@ -138,7 +138,7 @@ class ScheduleProcessor:
     
         # Choose between Mutation and Crossover with equal probability
         transition = random.choices(['Mutation', 'Crossover'], weights=[0.5, 0.5])[0]
-    
+
 
         if transition == 'Mutation':
             # Select one schedule for mutation based on the calculated probabilities
@@ -150,7 +150,6 @@ class ScheduleProcessor:
             # selected_schedules = random.choices(schedules, weights=normalized_probabilities, k=2)
             selected_schedules = random.choices(schedules, weights=normalized_probabilities, k=1)
             best_schedule = sorted_schedules[0]
-
             schedule = self.scheduler.generate_schedule(best_schedule, selected_schedules[0])
             
         if not schedule:

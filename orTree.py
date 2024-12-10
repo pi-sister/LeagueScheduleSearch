@@ -279,16 +279,21 @@ class OrTreeScheduler:
             if not mut:
                 push = False
                 if self.tempA or self.tempB:
-                    if index < 30: # if the game/prac we're working with is within the top 30 most constrained items, always assign it to the best schedules value
-                        if self.tempA and self.tempA[idx] == slot:
+                    # ok so we have a df with our worst columns, we just gotta see if the label we're working with
+                    #ok so we have our label of what we're working with - min_row_lavel
+                    # now we gotta check if min_row_label is in the worst eval df
+                    # if it is, change it to the rando
+                    # if it isn't don't change it
+                    if min_row_label in self.bad_guys['Label'].values:
+                        if self.tempB and self.tempB[idx] == slot:
                             push = True
                         else:
                             push = False
                     else:
                         if self.tempA and self.tempA[idx] == slot:
                             push = True
-                        if self.tempB and self.tempB[idx] == slot:
-                            push = True
+                        else:
+                            push = False
                 else:
                     push = True
                 if push:
@@ -585,6 +590,9 @@ class OrTreeScheduler:
         if (tempA or tempB) and not (tempA and tempB):
 
             self.randomNumbers = list(range(self.length))
+            self.bad_guys = env.get_top_offenders
+            self.bad_guys = self.bad_guys.reset_index().rename(columns={'index': 'Label'})
+
             sched_list = self.mutate(pr0) 
             
         else:
