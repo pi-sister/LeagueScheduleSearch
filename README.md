@@ -12,7 +12,7 @@ Or
 You can either manually run the code by editing the file:
 __init__.py runs on text files, the path to which needs to be hard coded on line 12 of __init__.py
 as the first variable of the Environment initializer. The second variable of the Environment is a list 
-containing all the pentalies. 
+containing all the penalties. 
 
 ### Tree Logic
 Our project is a set-based search that gets valid answers from an or-tree and through the use of a genetic
