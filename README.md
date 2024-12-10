@@ -1,6 +1,6 @@
-# Scheduluer
+# Charmander's Schedulue
 
-# Running
+### Running
 to run the file, you can run 
 ```
 __init__.py
