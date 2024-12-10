@@ -10,7 +10,6 @@ if __name__ == "__main__":
     # env = Environment('tests/minnumber.txt', [1,1,0,1,100,100,6,10], verbose = 1)
     #env = Environment('minnumber.txt', [1,1,1,1,10,10,10,10], verbose = 1)
     env = Environment('tests/CPSC433F24-LargeInput2.txt', [1,1,1,1,1,1,1,1], verbose = 1)
-
     sched = Schedule(env)
     
     constraints = Constr(env)
